@@ -19,8 +19,8 @@ class DocumentableVisibilityFilterTransformer(val context: DokkaContext) : PreMe
         val globalOptions: DokkaSourceSet
     ) {
         fun Visibility.isAllowedInPackage(packageName: String?) = when (this) {
-            is JavaVisibility.Public,
-            is KotlinVisibility.Public -> true
+            is JavaVisibility.Public, JavaVisibility.Protected,
+            is KotlinVisibility.Public, KotlinVisibility.Protected -> true
             else -> packageName != null
                     && packageOptions.firstOrNull { Regex(it.matchingRegex).matches(packageName) }?.includeNonPublic
                     ?: globalOptions.includeNonPublic

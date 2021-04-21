@@ -82,7 +82,7 @@ abstract class SuppressedByConditionDocumentableFilterTransformer(val context: D
             }
             is DEnum -> {
                 val constructors = classlike.constructors.map { processMember(it) }
-                val entries = classlike.entries.map { processMember(it) }
+                val entries = classlike.entries.map { processEntry(it) }
                 val wasClassChange =
                     wasClasslikeChanged || (constructors + entries).any { it.changed }
                 (classlike.takeIf { !wasClassChange } ?: classlike.copy(
@@ -95,6 +95,18 @@ abstract class SuppressedByConditionDocumentableFilterTransformer(val context: D
                 )).let { DocumentableWithChanges(it, wasClassChange) }
             }
         }
+    }
+
+    private fun processEntry(member: DEnumEntry): DocumentableWithChanges<DEnumEntry> {
+        val functions = member.functions.map { processMember(it) }
+        val properties = member.properties.map { processMember(it) }
+        val wasChanged = functions.any { it.changed } || properties.any { it.changed }
+        val entry = member.takeIf { !wasChanged } ?: member.copy(
+                functions = functions.mapNotNull { it.documentable },
+                properties = properties.mapNotNull { it.documentable }
+        ) ?: member
+        return if (shouldBeSuppressed(entry)) DocumentableWithChanges.filteredDocumentable()
+        else DocumentableWithChanges(entry, false)
     }
 
     private fun <T : Documentable> processMember(member: T): DocumentableWithChanges<T> =

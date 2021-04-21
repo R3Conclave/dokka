@@ -36,6 +36,7 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.annotations.Annotated
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor
 import org.jetbrains.kotlin.idea.kdoc.findKDoc
+import org.jetbrains.kotlin.idea.kdoc.insert
 import org.jetbrains.kotlin.idea.kdoc.resolveKDocLink
 import org.jetbrains.kotlin.load.kotlin.toSourceElement
 import org.jetbrains.kotlin.name.FqName
@@ -574,6 +575,11 @@ private class DokkaDescriptorVisitor(
         val isGetter = descriptor is PropertyGetterDescriptor
         val isExpect = descriptor.isExpect
         val isActual = descriptor.isActual
+        // If this accessor does not have documentation then try to get it from the property itself
+        var documentation = descriptor.resolveDescriptorData()
+        if (documentation.isNullOrEmpty()) {
+            documentation = propertyDescriptor.resolveDescriptorData()
+        }
 
         suspend fun PropertyDescriptor.asParameter(parent: DRI) =
             DParameter(
@@ -581,7 +587,7 @@ private class DokkaDescriptorVisitor(
                 this.name.asString(),
                 type = this.type.toBound(),
                 expectPresentInSet = sourceSet.takeIf { isExpect },
-                documentation = descriptor.resolveDescriptorData(),
+                documentation = documentation,
                 sourceSets = setOf(sourceSet),
                 extra = PropertyContainer.withAll(
                     descriptor.additionalExtras().toSourceSetDependent().toAdditionalModifiers(),
@@ -611,7 +617,7 @@ private class DokkaDescriptorVisitor(
                 isConstructor = false,
                 parameters = parameters,
                 visibility = descriptor.visibility.toDokkaVisibility().toSourceSetDependent(),
-                documentation = descriptor.resolveDescriptorData(),
+                documentation = documentation,
                 type = descriptor.returnType!!.toBound(),
                 generics = generics.await(),
                 modifier = descriptor.modifier().toSourceSetDependent(),
@@ -1041,8 +1047,10 @@ private class DokkaDescriptorVisitor(
     private val FunctionDescriptor.isObvious: Boolean
         get() = kind == CallableMemberDescriptor.Kind.FAKE_OVERRIDE ||
                 kind == CallableMemberDescriptor.Kind.SYNTHESIZED ||
+                (overriddenDescriptors.isNotEmpty() && overriddenDescriptors.first().isObvious) ||
+                overriddenDescriptors.map { it.fqNameOrNull()?.asString() }.contains("kotlin.Exception") ||
                 containingDeclaration.fqNameOrNull()?.asString()
-                    ?.let { it == "kotlin.Any" || it == "kotlin.Enum" } == true
+                    ?.let { it == "kotlin.Any" || it == "kotlin.Enum" || it == "kotlin.Throwable" } == true
 }
 
 private data class AncestryLevel(

@@ -2,6 +2,7 @@
 {% block content %}
 
 <main role="main">
+    <!-- ======== START OF CLASS DATA ======== -->
     <div class="header">
         <div class="subTitle"><span class="packageLabelInType">Package</span>&nbsp;<a href="package-summary.html">{{ package }}</a></div>
         <h2 title="{{ kind|capitalize }} {{ name }}" class="title">{{ kind|capitalize }} {{ name }}</h2>
@@ -293,5 +294,7 @@
             </ul>
         </div>
     </div>
+    <!-- ========= END OF CLASS DATA ========= -->
 </main>
+
 {% end %}

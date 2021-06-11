@@ -3,17 +3,7 @@
 !!! note 
     Dokka Maven plugin does not support multi-platform projects.
 
-The Maven plugin is available in JCenter. You need to add the JCenter repository to the list of plugin repositories if it's not there:
-
-```xml
-<pluginRepositories>
-    <pluginRepository>
-        <id>jcenter</id>
-        <name>JCenter</name>
-        <url>https://jcenter.bintray.com/</url>
-    </pluginRepository>
-</pluginRepositories>
-```
+The Maven plugin does not support multi-platform projects.
 
 Minimal Maven configuration is
 
@@ -72,6 +62,10 @@ The available configuration options are shown below:
         <!-- Use default or set to custom path to cache directory to enable package-list caching. -->
         <!-- When set to default, caches stored in $USER_HOME/.cache/dokka -->
         <cacheRoot>default</cacheRoot>
+
+        <!-- Set to true to to prevent resolving package-lists online. -->
+        <!-- When this option is set to true, only local files are resolved, default: false -->
+        <offlineMode>false</offlineMode>
 
         <!-- List of '.md' files with package and module docs -->
         <!-- https://kotlinlang.org/docs/reference/kotlin-doc.html#module-and-package-documentation -->

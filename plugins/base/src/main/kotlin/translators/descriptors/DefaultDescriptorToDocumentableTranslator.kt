@@ -35,6 +35,7 @@ import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.annotations.Annotated
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor
+import org.jetbrains.kotlin.idea.core.getDirectlyOverriddenDeclarations
 import org.jetbrains.kotlin.idea.kdoc.findKDoc
 import org.jetbrains.kotlin.idea.kdoc.insert
 import org.jetbrains.kotlin.idea.kdoc.resolveKDocLink
@@ -49,6 +50,7 @@ import org.jetbrains.kotlin.resolve.constants.KClassValue.Value.LocalClass
 import org.jetbrains.kotlin.resolve.constants.KClassValue.Value.NormalClass
 import org.jetbrains.kotlin.resolve.descriptorUtil.annotationClass
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
+import org.jetbrains.kotlin.resolve.descriptorUtil.overriddenTreeUniqueAsSequence
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.resolve.source.KotlinSourceElement
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
@@ -905,10 +907,11 @@ private class DokkaDescriptorVisitor(
 
     private fun ClassDescriptor.additionalExtras() = listOfNotNull(
         ExtraModifiers.KotlinOnlyModifiers.Inline.takeIf { isInline },
+        ExtraModifiers.KotlinOnlyModifiers.Value.takeIf { isValue },
         ExtraModifiers.KotlinOnlyModifiers.External.takeIf { isExternal },
         ExtraModifiers.KotlinOnlyModifiers.Inner.takeIf { isInner },
         ExtraModifiers.KotlinOnlyModifiers.Data.takeIf { isData },
-        ExtraModifiers.KotlinOnlyModifiers.Fun.takeIf { isFun }
+        ExtraModifiers.KotlinOnlyModifiers.Fun.takeIf { isFun },
     ).toSet()
 
     private fun ValueParameterDescriptor.additionalExtras() = listOfNotNull(
@@ -1050,7 +1053,7 @@ private class DokkaDescriptorVisitor(
                 (overriddenDescriptors.isNotEmpty() && overriddenDescriptors.first().isObvious) ||
                 overriddenDescriptors.map { it.fqNameOrNull()?.asString() }.contains("kotlin.Exception") ||
                 containingDeclaration.fqNameOrNull()?.asString()
-                    ?.let { it == "kotlin.Any" || it == "kotlin.Enum" || it == "kotlin.Throwable" } == true
+                    ?.let { it == "kotlin.Any" || it == "kotlin.Enum"  || it == "kotlin.Throwable" || it == "java.lang.Enum" || it == "java.lang.Object" } == true
 }
 
 private data class AncestryLevel(

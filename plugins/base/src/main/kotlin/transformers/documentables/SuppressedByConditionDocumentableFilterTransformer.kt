@@ -3,6 +3,7 @@ package org.jetbrains.dokka.base.transformers.documentables
 import org.jetbrains.dokka.model.*
 import org.jetbrains.dokka.plugability.DokkaContext
 import org.jetbrains.dokka.transformers.documentation.PreMergeDocumentableTransformer
+import org.jetbrains.kotlin.idea.kdoc.insert
 
 abstract class SuppressedByConditionDocumentableFilterTransformer(val context: DokkaContext) :
     PreMergeDocumentableTransformer {
@@ -39,10 +40,25 @@ abstract class SuppressedByConditionDocumentableFilterTransformer(val context: D
     private fun processClassLike(classlike: DClasslike): DocumentableWithChanges<DClasslike> {
         if (shouldBeSuppressed(classlike)) return DocumentableWithChanges.filteredDocumentable()
 
-        val functions = classlike.functions.map { processMember(it) }
+        // R3: The compiler should automatically add JvmStatic functions in the parent class
+        // from the companion but it is failing to resolve the package that contains JvmStatic.
+        // This is a workaround that manually moves the static functions into the containing class.
+        val companion = (classlike as? WithCompanion)?.companion?.let { processClassLike(it) }
+        val functions = if (classlike.name == "Companion") {
+            ArrayList()
+        } else {
+            var allFunctions = classlike.functions
+            if (companion != null) {
+                (classlike as WithCompanion).companion!!.functions.forEach {
+                    if (!allFunctions.contains(it)) {
+                        allFunctions = allFunctions + it
+                    }
+                }
+            }
+            allFunctions.map { processMember(it) }
+        }
         val classlikes = classlike.classlikes.map { processClassLike(it) }
         val properties = classlike.properties.map { processMember(it) }
-        val companion = (classlike as? WithCompanion)?.companion?.let { processClassLike(it) }
 
         val wasClasslikeChanged = (functions + classlikes + properties).any { it.changed } || companion?.changed == true
         return when (classlike) {

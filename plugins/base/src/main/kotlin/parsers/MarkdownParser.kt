@@ -552,7 +552,9 @@ open class MarkdownParser(
                                 val dri = pointedLink(it)
                                 See(
                                     parseStringToDocNode(it.getContent()),
-                                    dri?.fqName() ?: it.getSubjectName().orEmpty(),
+                                    // R3: Only use the subject name, not the fully qualified name as if the link is
+                                    // to a method or property then it is lost with fqName().
+                                    it.getSubjectName().orEmpty(),
                                     dri,
                                 )
                             }

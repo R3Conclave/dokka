@@ -181,10 +181,11 @@ open class DefaultPageCreator(
             val (inheritedProperties, memberProperties) = s.properties.splitInherited()
             propertiesBlock("Properties", memberProperties, sourceSets)
             propertiesBlock("Inherited properties", inheritedProperties, sourceSets)
-            functionsBlock("Functions", memberFunctions)
+            // R3: Functions renamed to Methods.
+            functionsBlock("Methods", memberFunctions)
             functionsBlock("Inherited functions", inheritedFunctions)
         } else {
-            functionsBlock("Functions", s.functions)
+            functionsBlock("Methods", s.functions)
             propertiesBlock("Properties", s.properties, sourceSets)
         }
         s.safeAs<WithExtraProperties<Documentable>>()?.let { it.extra[InheritorsInfo] }?.let { inheritors ->
@@ -432,9 +433,17 @@ open class DefaultPageCreator(
                                             kind = ContentKind.Comment,
                                             styles = this@sourceSetDependentHint.mainStyles + ContentStyle.RowTitle,
                                         ) {
-                                            if (it.address != null) link(
+                                            // R3: If the link refers to a companion object then modify it to point to the parent
+                                            // instead. This will fix any entries that are marked with @JvmStatic
+                                            var dri = it.address
+                                            if ((dri != null) && (dri.classNames != null) && dri.classNames!!.endsWith(".Companion")) {
+                                                dri = DRI(dri.packageName,
+                                                          dri.classNames!!.subSequence(0, dri.classNames!!.length - ".Companion".length).toString(),
+                                                          dri.callable, dri.target, dri.extra)
+                                            }
+                                            if (dri != null) link(
                                                 it.name,
-                                                it.address!!,
+                                                dri,
                                                 kind = ContentKind.Comment
                                             )
                                             else text(it.name, kind = ContentKind.Comment)
@@ -514,8 +523,10 @@ open class DefaultPageCreator(
         documentable.sourceSets.forEach { sourceSet ->
             documentable.documentation[sourceSet]?.children?.firstOrNull()?.root?.let {
                 group(sourceSets = setOf(sourceSet), kind = ContentKind.BriefComment) {
-                    if (documentable.hasSeparatePage) firstSentenceComment(it)
-                    else comment(it)
+                    // R3: Always show full comment instead of just first sentence.
+                    comment(it)
+                    //if (documentable.hasSeparatePage) firstSentenceComment(it)
+                    //else comment(it)
                 }
             }
         }

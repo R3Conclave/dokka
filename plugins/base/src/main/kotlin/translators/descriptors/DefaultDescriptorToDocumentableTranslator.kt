@@ -899,7 +899,10 @@ private class DokkaDescriptorVisitor(
         ExtraModifiers.KotlinOnlyModifiers.Inline.takeIf { isInline },
         ExtraModifiers.KotlinOnlyModifiers.Suspend.takeIf { isSuspend },
         ExtraModifiers.KotlinOnlyModifiers.Operator.takeIf { isOperator },
-        ExtraModifiers.JavaOnlyModifiers.Static.takeIf { isJvmStaticInObjectOrClassOrInterface() },
+        // R3: The compiler should automatically handle JvmStatic annotated functions
+        // but for some reason it cannot resolve the package containing the annotation. Added
+        // a workaround to detect JvmStatic here.
+        ExtraModifiers.JavaOnlyModifiers.Static.takeIf { isJvmStaticInObjectOrClassOrInterface() || toString().contains(" JvmStatic]")},
         ExtraModifiers.KotlinOnlyModifiers.TailRec.takeIf { isTailrec },
         ExtraModifiers.KotlinOnlyModifiers.External.takeIf { isExternal },
         ExtraModifiers.KotlinOnlyModifiers.Override.takeIf { DescriptorUtils.isOverride(this) }
@@ -1048,8 +1051,8 @@ private class DokkaDescriptorVisitor(
         .orEmpty()
 
     private val FunctionDescriptor.isObvious: Boolean
-        get() = kind == CallableMemberDescriptor.Kind.FAKE_OVERRIDE ||
-                kind == CallableMemberDescriptor.Kind.SYNTHESIZED ||
+        // R3: Remove check for FAKE_OVERRIDE as it causes inheritied methods to be hidden.
+        get() = kind == CallableMemberDescriptor.Kind.SYNTHESIZED ||
                 (overriddenDescriptors.isNotEmpty() && overriddenDescriptors.first().isObvious) ||
                 overriddenDescriptors.map { it.fqNameOrNull()?.asString() }.contains("kotlin.Exception") ||
                 containingDeclaration.fqNameOrNull()?.asString()

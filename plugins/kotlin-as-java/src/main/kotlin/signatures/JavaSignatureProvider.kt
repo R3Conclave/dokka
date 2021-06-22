@@ -30,7 +30,7 @@ class JavaSignatureProvider internal constructor(ctcc: CommentsToContentConverte
 
     // R3: Hide 'Final' modifier from generated docs.
     private val ignoredModifiers =
-        setOf(KotlinModifier.Open, JavaModifier.Empty, KotlinModifier.Empty, KotlinModifier.Sealed, KotlinModifier.Final)
+        setOf(KotlinModifier.Open, JavaModifier.Empty, KotlinModifier.Empty, KotlinModifier.Sealed, KotlinModifier.Final, JavaModifier.Final)
 
     override fun signature(documentable: Documentable): List<ContentNode> = when (documentable) {
         is DFunction -> signature(documentable)
@@ -108,7 +108,7 @@ class JavaSignatureProvider internal constructor(ctcc: CommentsToContentConverte
             ) {
                 annotationsBlock(p)
                 text(p.visibility[it]?.takeIf { it !in ignoredVisibilities }?.name?.plus(" ") ?: "")
-                text(p.modifier[it]?.name + " ")
+                text(p.modifier[it]?.takeIf { it !in ignoredModifiers }?.name?.plus(" ") ?: "")
                 text(p.modifiers()[it]?.toSignatureString() ?: "")
                 signatureForProjection(p.type)
                 text(nbsp.toString())

@@ -7,7 +7,7 @@ and can generate documentation in multiple formats including standard Javadoc, H
 
 ## Using Dokka
 
-**Full documentation is available at [https://kotlin.github.io/dokka/1.4.32/](https://kotlin.github.io/dokka/1.4.32/)**
+**Full documentation is available at [https://kotlin.github.io/dokka/1.5.0/](https://kotlin.github.io/dokka/1.5.0/)**
 
 ### Using the Gradle plugin
 _Note: If you are upgrading from 0.10.x to a current release of Dokka, please have a look at our 
@@ -18,7 +18,7 @@ The preferred way is to use `plugins` block.
 build.gradle.kts:
 ```kotlin
 plugins {
-    id("org.jetbrains.dokka") version "1.4.32"
+    id("org.jetbrains.dokka") version "1.5.0"
 }
 
 repositories {
@@ -33,7 +33,7 @@ Dokka plugin creates Gradle configuration for each output format in the form of 
 
 ```kotlin
 dependencies {
-    dokkaHtmlPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:1.4.32")
+    dokkaHtmlPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:1.5.0")
 }
 ``` 
 
@@ -42,7 +42,7 @@ You can also create a custom Dokka task and add plugins directly inside:
 ```kotlin
 val customDokkaTask by creating(DokkaTask::class) {
     dependencies {
-        plugins("org.jetbrains.dokka:kotlin-as-java-plugin:1.4.32")
+        plugins("org.jetbrains.dokka:kotlin-as-java-plugin:1.5.0")
     }
 }
 ```
@@ -55,7 +55,7 @@ To generate the documentation, use the appropriate `dokka${format}` Gradle task:
 ./gradlew dokkaHtml
 ```
 
-Please see the [Dokka Gradle example project](https://github.com/Kotlin/kotlin-examples/tree/master/gradle/dokka/dokka-gradle-example) for an example.
+Please see the [Dokka Gradle example project](https://github.com/Kotlin/dokka/tree/master/examples/gradle/dokka-gradle-example) for an example.
 
 We encourage users to create their own plugins and share them with the community on [official plugins list](docs/src/doc/docs/community/plugins-list.md).
 
@@ -140,7 +140,7 @@ You can add plugins inside the `dokkaPlugins` block:
 </plugin>
 ```
 
-Please see the [Dokka Maven example project](https://github.com/JetBrains/kotlin-examples/tree/master/maven/dokka-maven-example) for an example.
+Please see the [Dokka Maven example project](https://github.com/Kotlin/dokka/tree/master/examples/maven) for an example.
 
 ### Using the Command Line
 

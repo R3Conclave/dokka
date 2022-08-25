@@ -1,7 +1,9 @@
 package org.jetbrains.dokka.base.translators.descriptors
 
+import com.intellij.psi.PsiNamedElement
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.dokka.DokkaConfiguration.DokkaSourceSet
 import org.jetbrains.dokka.analysis.DescriptorDocumentableSource
 import org.jetbrains.dokka.analysis.DokkaResolutionFacade
@@ -10,6 +12,7 @@ import org.jetbrains.dokka.analysis.from
 import org.jetbrains.dokka.base.DokkaBase
 import org.jetbrains.dokka.base.parsers.MarkdownParser
 import org.jetbrains.dokka.base.translators.isDirectlyAnException
+import org.jetbrains.dokka.base.translators.psi.parsers.JavadocParser
 import org.jetbrains.dokka.base.translators.unquotedValue
 import org.jetbrains.dokka.links.*
 import org.jetbrains.dokka.links.Callable
@@ -39,6 +42,7 @@ import org.jetbrains.kotlin.idea.core.getDirectlyOverriddenDeclarations
 import org.jetbrains.kotlin.idea.kdoc.findKDoc
 import org.jetbrains.kotlin.idea.kdoc.insert
 import org.jetbrains.kotlin.idea.kdoc.resolveKDocLink
+import org.jetbrains.kotlin.js.resolve.diagnostics.findPsi
 import org.jetbrains.kotlin.load.kotlin.toSourceElement
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
@@ -65,6 +69,14 @@ import org.jetbrains.kotlin.resolve.constants.AnnotationValue as ConstantsAnnota
 import org.jetbrains.kotlin.resolve.constants.ArrayValue as ConstantsArrayValue
 import org.jetbrains.kotlin.resolve.constants.EnumValue as ConstantsEnumValue
 import org.jetbrains.kotlin.resolve.constants.KClassValue as ConstantsKtClassValue
+import org.jetbrains.kotlin.resolve.constants.DoubleValue as ConstantsDoubleValue
+import org.jetbrains.kotlin.resolve.constants.FloatValue as ConstantsFloatValue
+import org.jetbrains.kotlin.resolve.constants.IntValue as ConstantsIntValue
+import org.jetbrains.kotlin.resolve.constants.LongValue as ConstantsLongValue
+import org.jetbrains.kotlin.resolve.constants.UIntValue as ConstantsUIntValue
+import org.jetbrains.kotlin.resolve.constants.ULongValue as ConstantsULongValue
+import org.jetbrains.kotlin.resolve.constants.BooleanValue as ConstantsBooleanValue
+import org.jetbrains.kotlin.resolve.constants.NullValue as ConstantsNullValue
 
 class DefaultDescriptorToDocumentableTranslator(
     context: DokkaContext
@@ -111,6 +123,8 @@ private class DokkaDescriptorVisitor(
     private val resolutionFacade: DokkaResolutionFacade,
     private val logger: DokkaLogger
 ) {
+    private val javadocParser = JavadocParser(logger, resolutionFacade)
+
     private fun Collection<DeclarationDescriptor>.filterDescriptorsInSourceSet() = filter {
         it.toSourceElement.containingFile.toString().let { path ->
             path.isNotBlank() && sourceSet.sourceRoots.any { root ->
@@ -406,9 +420,8 @@ private class DokkaDescriptorVisitor(
         originalDescriptor: PropertyDescriptor,
         parent: DRIWithPlatformInfo
     ): DProperty {
-        val dri = parent.dri.copy(callable = Callable.from(originalDescriptor))
+        val (dri, inheritedFrom) = originalDescriptor.createDRI()
         val descriptor = originalDescriptor.getConcreteDescriptor()
-        val inheritedFrom = descriptor.createDRI().let { (originalDri, _) -> originalDri.takeIf { it != dri } }
         val isExpect = descriptor.isExpect
         val isActual = descriptor.isActual
 
@@ -854,7 +867,7 @@ private class DokkaDescriptorVisitor(
             org.jetbrains.kotlin.types.Variance.OUT_VARIANCE -> Covariance(this)
         }
 
-    private fun DeclarationDescriptor.getDocumentation() = findKDoc().let {
+    private fun DeclarationDescriptor.getDocumentation() = (findKDoc()?.let {
         MarkdownParser.parseFromKDocTag(
             kDocTag = it,
             externalDri = { link: String ->
@@ -877,7 +890,13 @@ private class DokkaDescriptorVisitor(
                 else it
             }
         )
-    }.takeIf { it.children.isNotEmpty() }
+    } ?: getJavaDocs())?.takeIf { it.children.isNotEmpty() }
+
+    private fun DeclarationDescriptor.getJavaDocs() = (this as? CallableDescriptor)
+        ?.overriddenDescriptors
+        ?.mapNotNull { it.findPsi() as? PsiNamedElement }
+        ?.firstOrNull()
+        ?.let { javadocParser.parseDocumentation(it) }
 
     private suspend fun ClassDescriptor.companion(dri: DRIWithPlatformInfo): DObject? = companionObjectDescriptor?.let {
         objectDescriptor(it, dri)
@@ -960,6 +979,14 @@ private class DokkaDescriptorVisitor(
                 )
             }
         }
+        is ConstantsFloatValue -> FloatValue(value)
+        is ConstantsDoubleValue -> DoubleValue(value)
+        is ConstantsUIntValue -> IntValue(value)
+        is ConstantsULongValue -> LongValue(value)
+        is ConstantsIntValue -> IntValue(value)
+        is ConstantsLongValue -> LongValue(value)
+        is ConstantsBooleanValue -> BooleanValue(value)
+        is ConstantsNullValue -> NullValue
         else -> StringValue(unquotedValue(toString()))
     }
 

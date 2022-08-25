@@ -4,12 +4,17 @@
     If you are upgrading from 0.10.x to a current release of Dokka, please have a look at our 
     [migration guide](https://github.com/Kotlin/dokka/blob/master/runners/gradle-plugin/MIGRATION.md)
 
+### Supported versions
+Dokka should work on gradle newer than 5.6
+
+### Setup
+
 The preferred way is to use `plugins` block. 
 
 build.gradle.kts:
 ```kotlin
 plugins {
-    id("org.jetbrains.dokka") version "1.4.32"
+    id("org.jetbrains.dokka") version "1.5.0"
 }
 
 repositories {
@@ -62,7 +67,9 @@ Most of the configuration options are set per one source set.
 The available configuration options for are shown below:
 
 ```kotlin
-dokkaHtml {
+import org.jetbrains.dokka.gradle.DokkaTask
+
+val dokkaHtml by getting(DokkaTask::class) {
     outputDirectory.set(buildDir.resolve("dokka"))
 
     // Set module name displayed in the final output
@@ -206,9 +213,6 @@ tasks.withType<DokkaTask>().configureEach {
     // custom output directory
     outputDirectory.set(buildDir.resolve("dokka"))
 
-    // path to project documentation to display on all modules page
-    includes.from(listOf(file("project_description.md")))
-
     dokkaSourceSets { 
          named("customNameMain") { // The same name as in Kotlin Multiplatform plugin, so the sources are fetched automatically
             includes.from("packages.md", "extra.md")
@@ -233,7 +237,7 @@ Dokka plugin creates Gradle configuration for each output format in the form of 
 
 ```kotlin
 dependencies {
-    dokkaHtmlPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:1.4.32")
+    dokkaHtmlPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:1.5.0")
 }
 ``` 
 
@@ -242,7 +246,7 @@ You can also create a custom Dokka task and add plugins directly inside:
 ```kotlin
 val customDokkaTask by creating(DokkaTask::class) {
     dependencies {
-        plugins("org.jetbrains.dokka:kotlin-as-java-plugin:1.4.32")
+        plugins("org.jetbrains.dokka:kotlin-as-java-plugin:1.5.0")
     }
 }
 ```
@@ -259,6 +263,9 @@ To generate the documentation, use the appropriate `dokka${format}` Gradle task:
 Some plugins can be configured separately using a plugin class and configuration class. For example:
 
 ```kotlin
+import org.jetbrains.dokka.base.DokkaBase
+import org.jetbrains.dokka.base.DokkaBaseConfiguration
+
 pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
     customAssets = listOf(file("<path to asset>"))
     customStyleSheets = listOf(file("<path to custom stylesheet>"))
@@ -266,6 +273,16 @@ pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
 ```
 
 Keep in mind, that this only works when using a buildscript (with the configured plugin on classpath) since it is not possible to import plugin's class without it.
+For example, you can add `DokkaBase` to gain access to aforementioned configuration:
+
+```kotlin
+buildscript {
+    dependencies {
+        // classpath("<plugin coordinates>:<plugin version>")
+        classpath("org.jetbrains.dokka:dokka-base:1.5.0")
+    }
+}
+```
 
 If you don't want to use a buildscript or use Kotlin version lower than 1.3.50 you can achieve the same behaviour manually:
 ```kotlin
@@ -325,4 +342,6 @@ tasks.dokkaHtmlPartial.configure {
 
 ## Example projects
 
-Please see the [Dokka Gradle single module example project](https://github.com/Kotlin/kotlin-examples/tree/master/gradle/dokka/dokka-gradle-example) or [multimodule](https://github.com/Kotlin/kotlin-examples/tree/master/gradle/dokka/dokka-multimodule-example) for an example.
+Please see the [Dokka Gradle single module example project](https://github.com/Kotlin/dokka/tree/master/examples/gradle/dokka-gradle-example) or [multimodule](https://github.com/Kotlin/dokka/tree/master/examples/gradle/dokka-multimodule-example) for an example.
+
+Also see [generated documentation](https://Kotlin.github.io/dokka/examples/dokka-gradle-example/html) in `HTML` format.

@@ -1,16 +1,15 @@
 package content.annotations
 
 import matchers.content.*
+import org.jetbrains.dokka.DokkaConfiguration
 import org.jetbrains.dokka.base.testApi.testRunner.BaseAbstractTest
 import org.jetbrains.dokka.links.DRI
-import org.jetbrains.dokka.model.Annotations
-import org.jetbrains.dokka.model.StringValue
-import org.jetbrains.dokka.model.dfs
+import org.jetbrains.dokka.model.*
 import org.jetbrains.dokka.pages.ContentPage
 import org.jetbrains.dokka.pages.ContentText
 import org.jetbrains.dokka.pages.MemberPageNode
 import org.jetbrains.dokka.pages.PackagePageNode
-import org.jetbrains.kotlin.utils.addToStdlib.firstNotNullResult
+import org.jetbrains.kotlin.util.firstNotNullResult
 import org.junit.jupiter.api.Test
 import utils.ParamAttributes
 import utils.assertNotNull
@@ -190,26 +189,57 @@ class ContentForAnnotationsTest : BaseAbstractTest() {
             |    val ref: Reference = Reference(value = 1),
             |    val reportedBy: Array<Reference>,
             |    val showStopper: Boolean = false
+            |    val previousReport: BugReport?
             |) {
             |    enum class Status {
             |        UNCONFIRMED, CONFIRMED, FIXED, NOTABUG
             |    }
             |    class ABC
             |}
-            |annotation class Reference(val value: Int)
-            |
+            |annotation class Reference(val value: Long)
+            |annotation class ReferenceReal(val value: Double)
+            | 
             |
             |@BugReport(
             |    assignedTo = "me",
             |    testCase = BugReport.ABC::class,
             |    status = BugReport.Status.FIXED,
-            |    ref = Reference(value = 2),
-            |    reportedBy = [Reference(value = 2), Reference(value = 4)],
-            |    showStopper = true
+            |    ref = Reference(value = 2u),
+            |    reportedBy = [Reference(value = 2UL), Reference(value = 4L), 
+            |                  ReferenceReal(value = 4.9), ReferenceReal(value = 2f)],
+            |    showStopper = true,
+            |    previousReport = null
             |)
             |val ltint: Int = 5
         """.trimIndent(), testConfiguration
         ) {
+            documentablesCreationStage = { modules ->
+
+                fun expectedAnnotationValue(name: String, value: AnnotationParameterValue) = AnnotationValue(Annotations.Annotation(
+                    dri = DRI("test", name),
+                    params = mapOf("value" to value),
+                    scope = Annotations.AnnotationScope.DIRECT,
+                    mustBeDocumented = false
+                ))
+                val property = modules.flatMap { it.packages }.flatMap { it.properties }.first()
+                val annotation = property.extra[Annotations]?.let {
+                    it.directAnnotations.entries.firstNotNullResult { (_, annotations) -> annotations.firstOrNull() }
+                }
+                val annotationParams = annotation?.params ?: emptyMap()
+
+                assertEquals(expectedAnnotationValue("Reference", IntValue(2)), annotationParams["ref"])
+
+                val reportedByParam = ArrayValue(listOf(
+                    expectedAnnotationValue("Reference", LongValue(2)),
+                    expectedAnnotationValue("Reference", LongValue(4)),
+                    expectedAnnotationValue("ReferenceReal", DoubleValue(4.9)),
+                    expectedAnnotationValue("ReferenceReal", FloatValue(2f))
+                ))
+                assertEquals(reportedByParam, annotationParams["reportedBy"])
+                assertEquals(BooleanValue(true), annotationParams["showStopper"])
+                assertEquals(NullValue, annotationParams["previousReport"])
+            }
+
             pagesTransformationStage = { module ->
                 val page = module.children.single { it.name == "test" } as PackagePageNode
                 page.content.assertNode {
@@ -221,7 +251,8 @@ class ContentForAnnotationsTest : BaseAbstractTest() {
                                 "status",
                                 "ref",
                                 "reportedBy",
-                                "showStopper"
+                                "showStopper",
+                                "previousReport"
                             )
                         ), "", "", emptySet(), "val", "ltint", "Int", "5"
                     )

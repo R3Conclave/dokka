@@ -2,12 +2,14 @@ package org.jetbrains.dokka.gradle
 
 import org.jetbrains.dokka.DokkaConfigurationImpl
 import org.jetbrains.dokka.build
+import org.gradle.api.tasks.*
 
+@CacheableTask
 abstract class DokkaTask : AbstractDokkaLeafTask() {
     override fun buildDokkaConfiguration(): DokkaConfigurationImpl =
         DokkaConfigurationImpl(
             moduleName = moduleName.getSafe(),
-            moduleVersion = moduleVersion.orNull?.takeIf { it != "unspecified" },
+            moduleVersion = moduleVersion.getValidVersionOrNull(),
             outputDir = outputDirectory.getSafe(),
             cacheRoot = cacheRoot.getSafe(),
             offlineMode = offlineMode.getSafe(),

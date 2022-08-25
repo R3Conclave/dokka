@@ -123,21 +123,13 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
                 text(
                     if (c.modifier[sourceSet] !in ignoredModifiers)
                         when {
-                            c.extra[AdditionalModifiers]?.content?.contains(ExtraModifiers.KotlinOnlyModifiers.Data) == true -> ""
+                            c.extra[AdditionalModifiers]?.content?.get(sourceSet)?.contains(ExtraModifiers.KotlinOnlyModifiers.Data) == true -> ""
                             c.modifier[sourceSet] is JavaModifier.Empty -> "${KotlinModifier.Open.name} "
                             else -> c.modifier[sourceSet]?.name?.let { "$it " } ?: ""
                         }
                     else
                         ""
                 )
-            }
-            if (c is DInterface) {
-                c.extra[AdditionalModifiers]?.content?.let { additionalModifiers ->
-                    sourceSetDependentText(additionalModifiers, setOf(sourceSet)) { extraModifiers ->
-                        if (ExtraModifiers.KotlinOnlyModifiers.Fun in extraModifiers) "fun "
-                        else ""
-                    }
-                }
             }
             when (c) {
                 is DClass -> {
@@ -184,7 +176,7 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
                         pConstructor.sourceSets.toSet()
                     ) {
                         annotationsInline(it)
-                        text(it.name ?: "", styles = mainStyles.plus(TextStyle.Bold))
+                        text(it.name.orEmpty())
                         text(": ")
                         signatureForProjection(it.type)
                     }

@@ -230,6 +230,24 @@ class SignatureTest : BaseAbstractTest() {
     }
 
     @Test
+    fun `functional interface`() {
+        val source = source("fun interface KRunnable")
+        val writerPlugin = TestOutputWriterPlugin()
+
+        testInline(
+            source,
+            configuration,
+            pluginOverrides = listOf(writerPlugin)
+        ) {
+            renderingStage = { _, _ ->
+                writerPlugin.writer.renderedContent("root/example/-k-runnable/index.html").firstSignature().match(
+                    "fun interface ", A("KRunnable"), Span()
+                )
+            }
+        }
+    }
+
+    @Test
     fun `fun with annotation`() {
         val source = """
             |/src/main/kotlin/test/Test.kt
@@ -252,10 +270,44 @@ class SignatureTest : BaseAbstractTest() {
             renderingStage = { _, _ ->
                 writerPlugin.writer.renderedContent("root/example/simple-fun.html").firstSignature().match(
                     Div(
-                        Div("@", A("Marking"), "()")
+                        Div("@", A("Marking"))
                     ),
                     "fun ", A("simpleFun"),
                     "(): ", A("String"), Span()
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `property with annotation`() {
+        val source = """
+            |/src/main/kotlin/test/Test.kt
+            |package example
+            |
+            | @MustBeDocumented()
+            | @Target(AnnotationTarget.FUNCTION)
+            | annotation class Marking
+            |
+            | @get:Marking()
+            | @set:Marking()
+            | var str: String
+            """.trimIndent()
+        val writerPlugin = TestOutputWriterPlugin()
+
+        testInline(
+            source,
+            configuration,
+            pluginOverrides = listOf(writerPlugin)
+        ) {
+            renderingStage = { _, _ ->
+                writerPlugin.writer.renderedContent("root/example/str.html").firstSignature().match(
+                    Div(
+                        Div("@get:", A("Marking")),
+                        Div("@set:", A("Marking"))
+                    ),
+                    "var ", A("str"),
+                    ": ", A("String"), Span()
                 )
             }
         }
@@ -291,8 +343,8 @@ class SignatureTest : BaseAbstractTest() {
                     .firstSignature()
                     .match(
                         Div(
-                            Div("@", A("Marking"), "(", Span("msg = ", Span("Nenya")), Wbr, ")"),
-                            Div("@", A("Marking2"), "(", Span("int = ", Span("1")), Wbr, ")")
+                           Div("@", A("Marking"), "(", Span("msg = ", Span("\"Nenya\"")), Wbr, ")"),
+                           Div("@", A("Marking2"), "(", Span("int = ", Span("1")), Wbr, ")")
                         ),
                         "fun ", A("simpleFun"),
                         "(): ", A("String"), Span()
@@ -328,9 +380,9 @@ class SignatureTest : BaseAbstractTest() {
                         Div(
                             "@", A("Marking"), "(", Span(
                                 "msg = [",
-                                Span(Span("Nenya"), ", "), Wbr,
-                                Span(Span("Vilya"), ", "), Wbr,
-                                Span(Span("Narya")), Wbr, "]"
+                                Span(Span("\"Nenya\""), ", "), Wbr,
+                                Span(Span("\"Vilya\""), ", "), Wbr,
+                                Span(Span("\"Narya\"")), Wbr, "]"
                             ), Wbr, ")"
                         )
                     ),
@@ -439,7 +491,7 @@ class SignatureTest : BaseAbstractTest() {
                 writerPlugin.writer.renderedContent("root/example/index.html").signature().first().match(
                     Div(
                         Div(
-                            "@", A("SomeAnnotation"), "()"
+                            "@", A("SomeAnnotation")
                         )
                     ),
                     "typealias ", A("PlainTypealias"), " = ", A("Int"), Span()

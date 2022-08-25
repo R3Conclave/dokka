@@ -61,7 +61,7 @@ data class Annotations(
         }.toMap()
 
     enum class AnnotationScope {
-        DIRECT, FILE
+        DIRECT, FILE, GETTER, SETTER
     }
 }
 
@@ -72,7 +72,30 @@ data class AnnotationValue(val annotation: Annotations.Annotation) : AnnotationP
 data class ArrayValue(val value: List<AnnotationParameterValue>) : AnnotationParameterValue()
 data class EnumValue(val enumName: String, val enumDri: DRI) : AnnotationParameterValue()
 data class ClassValue(val className: String, val classDRI: DRI) : AnnotationParameterValue()
-data class StringValue(val value: String) : AnnotationParameterValue() {
+abstract class LiteralValue : AnnotationParameterValue() {
+    abstract fun text() : String
+}
+data class IntValue(val value: Int) : LiteralValue() {
+    override fun text(): String = value.toString()
+}
+
+data class LongValue(val value: Long) : LiteralValue() {
+    override fun text(): String = value.toString()
+}
+data class FloatValue(val value: Float) : LiteralValue() {
+    override fun text(): String = value.toString()
+}
+data class DoubleValue(val value: Double) : LiteralValue() {
+    override fun text(): String = value.toString()
+}
+object NullValue : LiteralValue() {
+    override fun text(): String = "null"
+}
+data class BooleanValue(val value: Boolean) : LiteralValue() {
+    override fun text(): String = value.toString()
+}
+data class StringValue(val value: String) : LiteralValue() {
+    override fun text(): String = value
     override fun toString(): String = value
 }
 

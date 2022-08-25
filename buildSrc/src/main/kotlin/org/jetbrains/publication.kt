@@ -47,6 +47,8 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     configureSonatypePublicationIfNecessary(publicationName)
     createDokkaPublishTaskIfNecessary()
     registerBinaryCompatibilityCheck(publicationName)
+    configureArtifactoryReleasePublication(publicationName)
+    configureArtifactorySnapshotPublication(publicationName)
 }
 
 fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
@@ -70,6 +72,43 @@ fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
     whenEvaluated {
         tasks.withType<PublishToMavenRepository> {
             if (this.repository.name == SpaceDokkaDev.name) {
+                this.isEnabled = this.isEnabled && publication.name in publications
+                if (!this.isEnabled) {
+                    this.group = "disabled"
+                }
+            }
+        }
+    }
+}
+
+fun Project.configureArtifactoryReleasePublication(vararg publications: String) {
+    configureArtifactoryPublication(Artifactory, "conclave-maven-stable", *publications)
+}
+
+fun Project.configureArtifactorySnapshotPublication(vararg publications: String) {
+    configureArtifactoryPublication(ArtifactorySnapshot, "conclave-maven-stable", *publications)
+}
+
+fun Project.configureArtifactoryPublication(publicationChannel: DokkaPublicationChannel, repositoryName: String, vararg publications: String) {
+
+    configure<PublishingExtension> {
+        repositories {
+            /* already registered */
+            findByName(publicationChannel.name)?.let { return@repositories }
+            maven {
+                name = publicationChannel.name
+                url = URI.create("https://software.r3.com/artifactory/$repositoryName")
+                credentials {
+                    username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
+                    password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
+                }
+            }
+        }
+    }
+
+    whenEvaluated {
+        tasks.withType<PublishToMavenRepository> {
+            if (this.repository.name == publicationChannel.name) {
                 this.isEnabled = this.isEnabled && publication.name in publications
                 if (!this.isEnabled) {
                     this.group = "disabled"
@@ -116,7 +155,7 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
             }
 
             repo = when (bintrayPublicationChannels.single()) {
-                SpaceDokkaDev, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
+                SpaceDokkaDev, MavenCentral, MavenCentralSnapshot, Artifactory, ArtifactorySnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
                 BintrayKotlinDev -> "kotlin-dev"
                 BintrayKotlinEap -> "kotlin-eap"
                 BintrayKotlinDokka -> "dokka"

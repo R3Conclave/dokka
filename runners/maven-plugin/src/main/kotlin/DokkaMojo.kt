@@ -288,7 +288,7 @@ abstract class AbstractDokkaMojo(private val defaultDokkaPlugins: List<Dependenc
     }
 
     private val dokkaVersion: String by lazy {
-        mavenProject?.pluginArtifacts?.filter { it.groupId == "org.jetbrains.dokka" && it.artifactId == "dokka-maven-plugin" }
+        mavenProject?.pluginArtifacts?.filter { it.groupId == "com.r3.conclave" && it.artifactId == "dokka-maven-plugin" }
             ?.firstOrNull()?.version ?: throw IllegalStateException("Not found dokka plugin")
     }
 }
@@ -397,6 +397,6 @@ class DokkaJavadocJarMojo : AbstractDokkaMojo(listOf(javadocDependency)) {
 }
 
 private val javadocDependency = Dependency().apply {
-    groupId = "org.jetbrains.dokka"
+    groupId = "com.r3.conclave"
     artifactId = "javadoc-plugin"
 }

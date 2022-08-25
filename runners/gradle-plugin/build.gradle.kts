@@ -41,7 +41,7 @@ val sourceJar by tasks.registering(Jar::class) {
 gradlePlugin {
     plugins {
         create("dokkaGradlePlugin") {
-            id = "org.jetbrains.dokka"
+            id = "com.r3.conclave"
             displayName = "Dokka plugin"
             description = "Dokka, the Kotlin documentation tool"
             implementationClass = "org.jetbrains.dokka.gradle.DokkaPlugin"
@@ -57,7 +57,7 @@ pluginBundle {
     tags = listOf("dokka", "kotlin", "kdoc", "android", "documentation")
 
     mavenCoordinates {
-        groupId = "org.jetbrains.dokka"
+        groupId = "com.conclave.r3"
         artifactId = "dokka-gradle-plugin"
     }
 }

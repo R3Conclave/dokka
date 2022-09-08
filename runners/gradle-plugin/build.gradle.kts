@@ -94,3 +94,7 @@ afterEvaluate { // Workaround for an interesting design choice https://github.co
     configureSonatypePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     createDokkaPublishTaskIfNecessary()
 }
+
+registerDokkaArtifactPublication("dokkaGradlePlugin") {
+    artifactId = "dokka-gradle-plugin"
+}

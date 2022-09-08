@@ -24,9 +24,11 @@ class DokkaPublicationBuilder {
 
 
 fun Project.registerDokkaArtifactPublication(publicationName: String, configure: DokkaPublicationBuilder.() -> Unit) {
+    println("XXX: Registering for publication: $publicationName")
     configure<PublishingExtension> {
         publications {
             register<MavenPublication>(publicationName) {
+                println("XXX: Configuring and registering for publication: $publicationName")
                 val builder = DokkaPublicationBuilder().apply(configure)
                 artifactId = builder.artifactId
                 when (builder.component) {
@@ -181,6 +183,7 @@ fun Project.configureSonatypePublicationIfNecessary(vararg publications: String)
 }
 
 fun MavenPublication.configurePom(projectName: String) {
+    println("XXX: Configuring pom for $projectName")
     pom {
         name.set(projectName)
         description.set("Dokka is a documentation engine for Kotlin and Java, performing the same function as Javadoc for Java")

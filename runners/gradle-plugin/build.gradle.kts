@@ -65,21 +65,21 @@ pluginBundle {
 publishing {
     println("XXX1: Publishing task in runners:gradle-plugin")
     publications {
-        println("XXX1: Registering 1st task in runners:gradle-plugin")
+        println("XXX2: Registering 1st task in runners:gradle-plugin")
         register<MavenPublication>("dokkaGradlePluginForIntegrationTests") {
             artifactId = "dokka-gradle-plugin"
             from(components["java"])
             version = "for-integration-tests-SNAPSHOT"
         }
 
-        println("XXX2: Registering 2nd task in runners:gradle-plugin")
+        println("XXX3: Registering 2nd task in runners:gradle-plugin")
         register<MavenPublication>("pluginMaven") {
             configurePom("Dokka ${project.name}")
             artifactId = "dokka-gradle-plugin"
             artifact(tasks["javadocJar"])
         }
 
-        println("XXX3: After evaluate in runners:gradle-plugin")
+        println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
                 configurePom("Dokka plugin")

@@ -82,8 +82,7 @@ publishing {
         println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
-                //configurePom("Dokka plugin")
-                configurePom("com.r3.conclave.gradle.plugin")
+                configurePom("Dokka plugin")
             }
         }
     }

@@ -96,8 +96,8 @@ afterEvaluate { // Workaround for an interesting design choice https://github.co
     configureBintrayPublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     configureSpacePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     configureSonatypePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
-//    configureArtifactorySnapshotPublication("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
-//    configureArtifactoryReleasePublication("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
+    configureArtifactorySnapshotPublication("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
+    configureArtifactoryReleasePublication("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     createDokkaPublishTaskIfNecessary()
 }
 

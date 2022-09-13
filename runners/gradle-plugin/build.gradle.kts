@@ -82,14 +82,17 @@ publishing {
         println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
-                configurePom("Dokka com.r3.conclave.dokka.gradle.plugin")
+                configurePom("com.r3.conclave.dokka.gradle.plugin")
             }
         }
     }
 }
 
 tasks.withType<PublishToMavenRepository>().configureEach {
-    onlyIf { publication != publishing.publications["dokkaGradlePluginForIntegrationTests"] }
+    onlyIf {
+        println("XXX: onlyIf, publishing.publications: ${publication.name}, ${publication.artifactId}")
+        publication != publishing.publications["dokkaGradlePluginForIntegrationTests"]
+    }
 }
 
 afterEvaluate { // Workaround for an interesting design choice https://github.com/gradle/gradle/blob/c4f935f77377f1783f70ec05381c8182b3ade3ea/subprojects/plugin-development/src/main/java/org/gradle/plugin/devel/plugins/MavenPluginPublishPlugin.java#L49

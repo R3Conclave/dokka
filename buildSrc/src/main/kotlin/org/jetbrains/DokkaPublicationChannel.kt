@@ -10,9 +10,9 @@ enum class DokkaPublicationChannel {
     BintrayKotlinEap,
     BintrayKotlinDokka,
     MavenCentral,
-    MavenCentralSnapshot,
-    Artifactory,
-    ArtifactorySnapshot;
+    MavenCentralSnapshot;
+    //Artifactory,
+    //ArtifactorySnapshot;
 
     val isSpaceRepository get() = this == SpaceDokkaDev
 
@@ -27,11 +27,11 @@ enum class DokkaPublicationChannel {
             MavenCentral, MavenCentralSnapshot -> true
             else -> false
         }
-    val isArtifactoryRepository
-        get() = when (this) {
-            Artifactory, ArtifactorySnapshot -> true
-            else -> false
-        }
+//    val isArtifactoryRepository
+//        get() = when (this) {
+//            Artifactory, ArtifactorySnapshot -> true
+//            else -> false
+//        }
 
     val acceptedDokkaVersionTypes: List<DokkaVersionType>
         get() = when(this) {
@@ -41,8 +41,8 @@ enum class DokkaPublicationChannel {
             BintrayKotlinDev -> listOf(DokkaVersionType.Dev, DokkaVersionType.MC, DokkaVersionType.Snapshot)
             BintrayKotlinEap -> listOf(DokkaVersionType.MC)
             BintrayKotlinDokka -> listOf(DokkaVersionType.Release)
-            Artifactory -> listOf(DokkaVersionType.Release)
-            ArtifactorySnapshot ->  listOf(DokkaVersionType.Snapshot)
+            //Artifactory -> listOf(DokkaVersionType.Release)
+            //ArtifactorySnapshot ->  listOf(DokkaVersionType.Snapshot)
         }
 
     companion object {
@@ -53,8 +53,8 @@ enum class DokkaPublicationChannel {
             "bintray-kotlin-dokka" -> BintrayKotlinDokka
             "maven-central-release" -> MavenCentral
             "maven-central-snapshot" -> MavenCentralSnapshot
-            "artifactory-release" -> Artifactory
-            "artifactory-dev" -> ArtifactorySnapshot
+            //"artifactory-release" -> Artifactory
+            //"artifactory-dev" -> ArtifactorySnapshot
             else -> throw IllegalArgumentException("Unknown dokka_publication_channel=$value")
         }
     }

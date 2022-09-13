@@ -83,8 +83,8 @@ publishing {
         println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
-                artifactId = "dokka-gradle-plugin"
-                configurePom("com.r3.conclave.dokka.gradle.plugin")
+                //artifactId = "dokka-gradle-plugin"
+                configurePom("Dokka plugin")
             }
         }
     }
@@ -105,6 +105,6 @@ afterEvaluate { // Workaround for an interesting design choice https://github.co
     createDokkaPublishTaskIfNecessary()
 }
 
-registerDokkaArtifactPublication("dokkaGradlePlugin") {
-    artifactId = "dokka-gradle-plugin"
-}
+//registerDokkaArtifactPublication("dokkaGradlePlugin") {
+//    artifactId = "dokka-gradle-plugin"
+//}

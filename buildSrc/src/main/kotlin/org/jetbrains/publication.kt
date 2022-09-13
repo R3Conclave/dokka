@@ -47,10 +47,10 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     configureBintrayPublicationIfNecessary(publicationName)
     configureSpacePublicationIfNecessary(publicationName)
     configureSonatypePublicationIfNecessary(publicationName)
-    createDokkaPublishTaskIfNecessary()
-    registerBinaryCompatibilityCheck(publicationName)
     configureArtifactoryReleasePublication(publicationName)
     configureArtifactorySnapshotPublication(publicationName)
+    createDokkaPublishTaskIfNecessary()
+    registerBinaryCompatibilityCheck(publicationName)
 }
 
 fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {

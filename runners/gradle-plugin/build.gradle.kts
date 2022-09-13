@@ -40,6 +40,7 @@ val sourceJar by tasks.registering(Jar::class) {
 
 gradlePlugin {
     plugins {
+        println("XXX Creating dokka gradle plugin")
         create("dokkaGradlePlugin") {
             id = "com.r3.conclave.dokka"
             displayName = "Dokka plugin"
@@ -82,6 +83,7 @@ publishing {
         println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
+                artifactId = "dokka-gradle-plugin"
                 configurePom("com.r3.conclave.dokka.gradle.plugin")
             }
         }

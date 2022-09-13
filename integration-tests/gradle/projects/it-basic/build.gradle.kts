@@ -11,7 +11,7 @@ plugins {
 
 buildscript {
     dependencies {
-        classpath("com.r3.conclave:dokka-base:${System.getenv("DOKKA_VERSION")}")
+        classpath("com.r3.conclave.dokka:dokka-base:${System.getenv("DOKKA_VERSION")}")
     }
 }
 

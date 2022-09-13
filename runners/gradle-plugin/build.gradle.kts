@@ -57,7 +57,7 @@ pluginBundle {
     tags = listOf("dokka", "kotlin", "kdoc", "android", "documentation")
 
     mavenCoordinates {
-        groupId = "com.r3.conclave"
+        groupId = "com.r3.conclave.dokka"
         artifactId = "dokka-gradle-plugin"
     }
 }

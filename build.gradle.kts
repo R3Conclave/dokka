@@ -13,7 +13,7 @@ val dokka_version: String by project
 allprojects {
     configureDokkaVersion()
 
-    group = "com.r3.conclave"
+    group = "com.r3.conclave.dokka"
     version = dokka_version
 
 

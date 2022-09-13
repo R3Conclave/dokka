@@ -54,6 +54,7 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
 }
 
 fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
+    println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
     if (SpaceDokkaDev in this.publicationChannels) {
         configure<PublishingExtension> {
             repositories {
@@ -92,7 +93,7 @@ fun Project.configureArtifactorySnapshotPublication(vararg publications: String)
 }
 
 fun Project.configureArtifactoryPublication(publicationChannel: DokkaPublicationChannel, repositoryName: String, vararg publications: String) {
-
+    println("XXX: configureArtifactoryPublication, publicationChannel: $publicationChannel, repositoryName: $repositoryName, publications: $publications")
     configure<PublishingExtension> {
         repositories {
             /* already registered */
@@ -100,6 +101,7 @@ fun Project.configureArtifactoryPublication(publicationChannel: DokkaPublication
             maven {
                 name = publicationChannel.name
                 url = URI.create("https://software.r3.com/artifactory/$repositoryName")
+                println("XXX: Creating url $url to publish repository: ${publicationChannel.name}")
                 credentials {
                     username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
                     password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
@@ -111,9 +113,11 @@ fun Project.configureArtifactoryPublication(publicationChannel: DokkaPublication
     whenEvaluated {
         tasks.withType<PublishToMavenRepository> {
             if (this.repository.name == publicationChannel.name) {
+                println("XXX: whenEvaluated, publicationChannel.name = ${publicationChannel.name}")
                 this.isEnabled = this.isEnabled && publication.name in publications
                 if (!this.isEnabled) {
                     this.group = "disabled"
+                    println("XXX: whenEvaluated: disabled, publicationChannel.name = ${publicationChannel.name}, repository name: $repositoryName")
                 }
             }
         }
@@ -121,28 +125,34 @@ fun Project.configureArtifactoryPublication(publicationChannel: DokkaPublication
 }
 
 fun Project.createDokkaPublishTaskIfNecessary() {
+    println("XXX: createDokkaPublishTaskIfNecessary")
     tasks.maybeCreate("dokkaPublish").run {
         if (publicationChannels.any { it.isSpaceRepository }) {
+            println("XXX: task: publish")
             dependsOn(tasks.named("publish"))
         }
 
         if (publicationChannels.any { it.isMavenRepository }) {
+            println("XXX: task: publishToSonatype")
             dependsOn(tasks.named("publishToSonatype"))
         }
 
         if (publicationChannels.any { it.isBintrayRepository }) {
+            println("XXX: task: bintrayUpload")
             dependsOn(tasks.named("bintrayUpload"))
         }
     }
 }
 
 fun Project.configureBintrayPublicationIfNecessary(vararg publications: String) {
+    println("XXX: configureBintrayPublicationIfNecessary, publications: $publications")
     if (publicationChannels.any { it.isBintrayRepository }) {
         configureBintrayPublication(*publications)
     }
 }
 
 private fun Project.configureBintrayPublication(vararg publications: String) {
+    println("XXX: configureBintrayPublication, publications: $publications")
     extensions.configure<BintrayExtension>("bintray") {
         user = System.getenv("BINTRAY_USER")
         key = System.getenv("BINTRAY_KEY")
@@ -177,6 +187,7 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
 }
 
 fun Project.configureSonatypePublicationIfNecessary(vararg publications: String) {
+    println("XXX: configureSonatypePublicationIfNecessary, publications: $publications")
     if (publicationChannels.any { it.isMavenRepository }) {
         signPublicationsIfKeyPresent(*publications)
     }

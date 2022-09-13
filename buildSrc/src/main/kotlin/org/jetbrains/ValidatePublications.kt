@@ -25,6 +25,7 @@ open class ValidatePublications : DefaultTask() {
 
     @TaskAction
     fun validatePublicationConfiguration() {
+        println("XXX: validatePublicationConfiguration")
         @Suppress("LocalVariableName")
         project.subprojects.forEach { subProject ->
             val publishing = subProject.extensions.findByType<PublishingExtension>() ?: return@forEach
@@ -42,6 +43,7 @@ open class ValidatePublications : DefaultTask() {
     }
 
     private fun checkPublicationIsConfiguredForBintray(project: Project, publication: MavenPublication) {
+        println("XXX: checkPublicationIsConfiguredForBintray, project: $project")
         val bintrayExtension = project.extensions.findByType<BintrayExtension>()
             ?: throw MissingBintrayPublicationException(project, publication)
 
@@ -54,6 +56,7 @@ open class ValidatePublications : DefaultTask() {
     }
 
     private fun checkProjectDependenciesArePublished(project: Project) {
+        println("XXX: checkProjectDependenciesArePublished, project: $project")
         (project.configurations.findByName("implementation")?.allDependencies.orEmpty() +
                 project.configurations.findByName("api")?.allDependencies.orEmpty())
             .filterIsInstance<ProjectDependency>()

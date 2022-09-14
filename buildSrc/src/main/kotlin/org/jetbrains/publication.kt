@@ -50,7 +50,15 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     registerBinaryCompatibilityCheck(publicationName)
 }
 
+fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publications: String) {
+    configureArtifactoryReleasePublication(*publications)
+}
+
 fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publications: String) {
+    configureArtifactorySnapshotPublication(*publications)
+}
+
+fun Project.configureArtifactorySnapshotPublication(vararg publications: String) {
     println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
     if (SpaceDokkaDev in this.publicationChannels) {
         configure<PublishingExtension> {
@@ -81,7 +89,7 @@ fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publicatio
     }
 }
 
-fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publications: String) {
+fun Project.configureArtifactoryReleasePublication(vararg publications: String) {
     println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
     if (SpaceDokkaDev in this.publicationChannels) {
         configure<PublishingExtension> {
@@ -90,11 +98,8 @@ fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publication
                 findByName(SpaceDokkaDev.name)?.let { return@repositories }
                 maven {
                     name = SpaceDokkaDev.name
-                    //url = URI.create("https://maven.pkg.jetbrains.space/kotlin/p/dokka/dev")
                     url = URI.create("https://software.r3.com/artifactory/conclave-maven-stable")
                     credentials {
-//                        username = System.getenv("SPACE_PACKAGES_USER")
-//                        password = System.getenv("SPACE_PACKAGES_SECRET")
                         username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
                         password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
                     }

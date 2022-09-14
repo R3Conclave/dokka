@@ -51,14 +51,14 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
 }
 
 fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publications: String) {
-    configureArtifactoryReleasePublication(*publications)
+    configureArtifactoryPublication("conclave-maven-stable", *publications)
 }
 
 fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publications: String) {
-    configureArtifactorySnapshotPublication(*publications)
+    configureArtifactoryPublication("conclave-maven-dev", *publications)
 }
 
-fun Project.configureArtifactorySnapshotPublication(vararg publications: String) {
+fun Project.configureArtifactoryPublication(repositoryName: String, vararg publications: String) {
     println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
     if (SpaceDokkaDev in this.publicationChannels) {
         configure<PublishingExtension> {
@@ -67,7 +67,7 @@ fun Project.configureArtifactorySnapshotPublication(vararg publications: String)
                 findByName(SpaceDokkaDev.name)?.let { return@repositories }
                 maven {
                     name = SpaceDokkaDev.name
-                    url = URI.create("https://software.r3.com/artifactory/conclave-maven-dev")
+                    url = URI.create("https://software.r3.com/artifactory/$repositoryName")
                     credentials {
                         username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
                         password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
@@ -88,77 +88,6 @@ fun Project.configureArtifactorySnapshotPublication(vararg publications: String)
         }
     }
 }
-
-fun Project.configureArtifactoryReleasePublication(vararg publications: String) {
-    println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
-    if (SpaceDokkaDev in this.publicationChannels) {
-        configure<PublishingExtension> {
-            repositories {
-                /* already registered */
-                findByName(SpaceDokkaDev.name)?.let { return@repositories }
-                maven {
-                    name = SpaceDokkaDev.name
-                    url = URI.create("https://software.r3.com/artifactory/conclave-maven-stable")
-                    credentials {
-                        username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
-                        password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
-                    }
-                }
-            }
-        }
-    }
-
-    whenEvaluated {
-        tasks.withType<PublishToMavenRepository> {
-            if (this.repository.name == SpaceDokkaDev.name) {
-                this.isEnabled = this.isEnabled && publication.name in publications
-                if (!this.isEnabled) {
-                    this.group = "disabled"
-                }
-            }
-        }
-    }
-}
-
-//fun Project.configureArtifactoryReleasePublication(vararg publications: String) {
-//    configureArtifactoryPublication(Artifactory, "conclave-maven-stable", *publications)
-//}
-//
-//fun Project.configureArtifactorySnapshotPublication(vararg publications: String) {
-//    configureArtifactoryPublication(ArtifactorySnapshot, "conclave-maven-dev", *publications)
-//}
-
-//fun Project.configureArtifactoryPublication(publicationChannel: DokkaPublicationChannel, repositoryName: String, vararg publications: String) {
-//    println("XXX: configureArtifactoryPublication, publicationChannel: $publicationChannel, repositoryName: $repositoryName, publications: $publications")
-//    configure<PublishingExtension> {
-//        repositories {
-//            /* already registered */
-//            findByName(publicationChannel.name)?.let { return@repositories }
-//            maven {
-//                name = publicationChannel.name
-//                url = URI.create("https://software.r3.com/artifactory/$repositoryName")
-//                println("XXX: Creating url $url to publish repository: ${publicationChannel.name}")
-//                credentials {
-//                    username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
-//                    password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
-//                }
-//            }
-//        }
-//    }
-//
-//    whenEvaluated {
-//        tasks.withType<PublishToMavenRepository> {
-//            if (this.repository.name == publicationChannel.name) {
-//                println("XXX: whenEvaluated, publicationChannel.name = ${publicationChannel.name}")
-//                this.isEnabled = this.isEnabled && publication.name in publications
-//                if (!this.isEnabled) {
-//                    this.group = "disabled"
-//                    println("XXX: whenEvaluated: disabled, publicationChannel.name = ${publicationChannel.name}, repository name: $repositoryName")
-//                }
-//            }
-//        }
-//    }
-//}
 
 fun Project.createDokkaPublishTaskIfNecessary() {
     println("XXX: createDokkaPublishTaskIfNecessary")

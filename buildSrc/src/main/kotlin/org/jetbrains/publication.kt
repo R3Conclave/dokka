@@ -41,39 +41,22 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     }
 
     configureBintrayPublicationIfNecessary(publicationName)
-    configureArtifactoryReleasePublicationIfNecessary(publicationName)
-    configureArtifactoryRCPublicationIfNecessary(publicationName)
-    configureArtifactorySnapshotPublicationIfNecessary(publicationName)
+    configureArtifactoryPublication(publicationName)
     configureSonatypePublicationIfNecessary(publicationName)
     createDokkaPublishTaskIfNecessary()
     registerBinaryCompatibilityCheck(publicationName)
 }
-
-fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publications: String) {
-    configureArtifactoryPublication(ArtifactoryRelease, "conclave-maven-stable", *publications)
-}
-
-fun Project.configureArtifactoryRCPublicationIfNecessary(vararg publications: String) {
-    configureArtifactoryPublication(ArtifactoryRC, "conclave-maven-unstable", *publications)
-}
-
-fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publications: String) {
-    configureArtifactoryPublication(ArtifactorySnapshot, "conclave-maven-dev", *publications)
-}
-
 fun Project.configureArtifactoryPublication(
-    publicationChannel: DokkaPublicationChannel,
-    repositoryName: String,
     vararg publications: String
 ) {
-    if (publicationChannel in this.publicationChannels) {
+    if (Artifactory in this.publicationChannels) {
         configure<PublishingExtension> {
             repositories {
                 /* already registered */
-                findByName(publicationChannel.name)?.let { return@repositories }
+                findByName(Artifactory.name)?.let { return@repositories }
                 maven {
-                    name = publicationChannel.name
-                    url = URI.create("https://software.r3.com/artifactory/$repositoryName")
+                    name = Artifactory.name
+                    url = URI.create(getArtifactoryUrlForPublication())
                     credentials {
                         username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
                         password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
@@ -85,7 +68,7 @@ fun Project.configureArtifactoryPublication(
 
     whenEvaluated {
         tasks.withType<PublishToMavenRepository> {
-            if (this.repository.name == publicationChannel.name) {
+            if (this.repository.name == Artifactory.name) {
                 this.isEnabled = this.isEnabled && publication.name in publications
                 if (!this.isEnabled) {
                     this.group = "disabled"
@@ -132,7 +115,7 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
             }
 
             repo = when (bintrayPublicationChannels.single()) {
-                ArtifactoryRelease, ArtifactoryRC, ArtifactorySnapshot, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException(
+                Artifactory, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException(
                     "${bintrayPublicationChannels.single()} is not a bintray repository"
                 )
                 BintrayKotlinDev -> "kotlin-dev"
@@ -157,6 +140,19 @@ fun Project.configureSonatypePublicationIfNecessary(vararg publications: String)
     if (publicationChannels.any { it.isMavenRepository }) {
         signPublicationsIfKeyPresent(*publications)
     }
+}
+
+fun Project.getArtifactoryUrlForPublication(): String {
+    var mavenRepo = ""
+    val versionType = getConclaveDokkaVersionType()
+    if (versionType == ConclaveDokkaVersionType.SNAPSHOT) {
+        mavenRepo = "conclave-maven-dev"
+    } else if (versionType == ConclaveDokkaVersionType.RELEASE_CANDIDATE) {
+        mavenRepo = "conclave-maven-unstable"
+    } else {
+        mavenRepo = "conclave-maven-stable"
+    }
+    return "https://software.r3.com/artifactory/" + mavenRepo
 }
 
 fun MavenPublication.configurePom(projectName: String) {

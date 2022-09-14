@@ -27,3 +27,19 @@ val Project.dokkaVersion: String
 
 val Project.dokkaVersionType: DokkaVersionType?
     get() = DokkaVersionType.values().find { it.suffix.matches(dokkaVersion.substringAfter("-", "")) }
+
+enum class ConclaveDokkaVersionType {
+    GA_RELEASE,
+    RELEASE_CANDIDATE,
+    SNAPSHOT
+}
+
+fun Project.getConclaveDokkaVersionType() : ConclaveDokkaVersionType {
+    if (dokkaVersion.endsWith("-SNAPSHOT")) {
+        return ConclaveDokkaVersionType.SNAPSHOT
+    } else if (dokkaVersion.matches(".+-RC[0-9]+$".toRegex())) {
+        return ConclaveDokkaVersionType.RELEASE_CANDIDATE
+    } else {
+        return ConclaveDokkaVersionType.GA_RELEASE
+    }
+}

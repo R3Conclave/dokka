@@ -41,29 +41,38 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     }
 
     configureBintrayPublicationIfNecessary(publicationName)
-    configureArtifactorySnapshotPublicationIfNecessary(publicationName)
     configureArtifactoryReleasePublicationIfNecessary(publicationName)
+    configureArtifactoryRCPublicationIfNecessary(publicationName)
+    configureArtifactorySnapshotPublicationIfNecessary(publicationName)
     configureSonatypePublicationIfNecessary(publicationName)
     createDokkaPublishTaskIfNecessary()
     registerBinaryCompatibilityCheck(publicationName)
 }
 
 fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publications: String) {
-    configureArtifactoryPublication("conclave-maven-stable", *publications)
+    configureArtifactoryPublication(ArtifactoryRelease, "conclave-maven-stable", *publications)
+}
+
+fun Project.configureArtifactoryRCPublicationIfNecessary(vararg publications: String) {
+    configureArtifactoryPublication(ArtifactoryRC, "conclave-maven-unstable", *publications)
 }
 
 fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publications: String) {
-    configureArtifactoryPublication("conclave-maven-dev", *publications)
+    configureArtifactoryPublication(ArtifactorySnapshot, "conclave-maven-dev", *publications)
 }
 
-fun Project.configureArtifactoryPublication(repositoryName: String, vararg publications: String) {
-    if (Artifactory in this.publicationChannels) {
+fun Project.configureArtifactoryPublication(
+    publicationChannel: DokkaPublicationChannel,
+    repositoryName: String,
+    vararg publications: String
+) {
+    if (publicationChannel in this.publicationChannels) {
         configure<PublishingExtension> {
             repositories {
                 /* already registered */
-                findByName(Artifactory.name)?.let { return@repositories }
+                findByName(publicationChannel.name)?.let { return@repositories }
                 maven {
-                    name = Artifactory.name
+                    name = publicationChannel.name
                     url = URI.create("https://software.r3.com/artifactory/$repositoryName")
                     credentials {
                         username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
@@ -76,7 +85,7 @@ fun Project.configureArtifactoryPublication(repositoryName: String, vararg publi
 
     whenEvaluated {
         tasks.withType<PublishToMavenRepository> {
-            if (this.repository.name == Artifactory.name) {
+            if (this.repository.name == publicationChannel.name) {
                 this.isEnabled = this.isEnabled && publication.name in publications
                 if (!this.isEnabled) {
                     this.group = "disabled"
@@ -123,8 +132,9 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
             }
 
             repo = when (bintrayPublicationChannels.single()) {
-                //SpaceDokkaDev, MavenCentral, MavenCentralSnapshot, Artifactory, ArtifactorySnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
-                Artifactory, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
+                ArtifactoryRelease, ArtifactoryRC, ArtifactorySnapshot, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException(
+                    "${bintrayPublicationChannels.single()} is not a bintray repository"
+                )
                 BintrayKotlinDev -> "kotlin-dev"
                 BintrayKotlinEap -> "kotlin-eap"
                 BintrayKotlinDokka -> "dokka"

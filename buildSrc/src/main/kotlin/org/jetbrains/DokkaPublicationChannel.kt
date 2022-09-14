@@ -5,14 +5,20 @@ package org.jetbrains
 import org.gradle.api.Project
 
 enum class DokkaPublicationChannel {
-    Artifactory,
+    ArtifactoryRelease,
+    ArtifactoryRC,
+    ArtifactorySnapshot,
     BintrayKotlinDev,
     BintrayKotlinEap,
     BintrayKotlinDokka,
     MavenCentral,
     MavenCentralSnapshot;
 
-    val isArtifactoryRepository get() = this == Artifactory
+    val isArtifactoryRepository
+        get() = when (this) {
+            ArtifactoryRelease, ArtifactoryRC, ArtifactorySnapshot -> true
+            else -> false
+        }
 
     val isBintrayRepository
         get() = when (this) {
@@ -27,10 +33,12 @@ enum class DokkaPublicationChannel {
         }
 
     val acceptedDokkaVersionTypes: List<DokkaVersionType>
-        get() = when(this) {
+        get() = when (this) {
             MavenCentral -> listOf(DokkaVersionType.Release)
             MavenCentralSnapshot -> listOf(DokkaVersionType.Snapshot)
-            Artifactory -> listOf(DokkaVersionType.Release, DokkaVersionType.Dev, DokkaVersionType.MC, DokkaVersionType.Snapshot)
+            ArtifactoryRelease -> listOf(DokkaVersionType.Release)
+            ArtifactoryRC -> listOf(DokkaVersionType.MC) //TODO: need to fix MC to RC in DokkaVersionTypes
+            ArtifactorySnapshot -> listOf(DokkaVersionType.Snapshot)
             BintrayKotlinDev -> listOf(DokkaVersionType.Dev, DokkaVersionType.MC, DokkaVersionType.Snapshot)
             BintrayKotlinEap -> listOf(DokkaVersionType.MC)
             BintrayKotlinDokka -> listOf(DokkaVersionType.Release)
@@ -38,7 +46,9 @@ enum class DokkaPublicationChannel {
 
     companion object {
         fun fromPropertyString(value: String): DokkaPublicationChannel = when (value) {
-            "space-dokka-dev" -> Artifactory
+            "artifactory-release" -> ArtifactoryRelease
+            "artifactory-rc" -> ArtifactoryRC
+            "artifactory-snapshot" -> ArtifactorySnapshot
             "bintray-kotlin-dev" -> BintrayKotlinDev
             "bintray-kotlin-eap" -> BintrayKotlinEap
             "bintray-kotlin-dokka" -> BintrayKotlinDokka

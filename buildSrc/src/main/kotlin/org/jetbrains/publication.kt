@@ -2,7 +2,6 @@ package org.jetbrains
 
 import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.jfrog.bintray.gradle.BintrayExtension
-import kotlinx.validation.ApiValidationExtension
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -10,7 +9,6 @@ import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.kotlin.dsl.*
 import org.gradle.plugins.signing.SigningExtension
 import org.jetbrains.DokkaPublicationChannel.*
-import io.github.gradlenexus.publishplugin.NexusPublishExtension
 import java.net.URI
 
 class DokkaPublicationBuilder {
@@ -45,16 +43,45 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     }
 
     configureBintrayPublicationIfNecessary(publicationName)
-    configureSpacePublicationIfNecessary(publicationName)
+    configureArtifactorySnapshotPublicationIfNecessary(publicationName)
+    configureArtifactoryReleasePublicationIfNecessary(publicationName)
     configureSonatypePublicationIfNecessary(publicationName)
-//    configureArtifactoryReleasePublication(publicationName)
-//    configureArtifactorySnapshotPublication(publicationName)
     createDokkaPublishTaskIfNecessary()
     registerBinaryCompatibilityCheck(publicationName)
 }
 
-// TODO: Changing this from Space Publication to Artifactory publication
-fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
+fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publications: String) {
+    println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
+    if (SpaceDokkaDev in this.publicationChannels) {
+        configure<PublishingExtension> {
+            repositories {
+                /* already registered */
+                findByName(SpaceDokkaDev.name)?.let { return@repositories }
+                maven {
+                    name = SpaceDokkaDev.name
+                    url = URI.create("https://software.r3.com/artifactory/conclave-maven-dev")
+                    credentials {
+                        username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
+                        password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
+                    }
+                }
+            }
+        }
+    }
+
+    whenEvaluated {
+        tasks.withType<PublishToMavenRepository> {
+            if (this.repository.name == SpaceDokkaDev.name) {
+                this.isEnabled = this.isEnabled && publication.name in publications
+                if (!this.isEnabled) {
+                    this.group = "disabled"
+                }
+            }
+        }
+    }
+}
+
+fun Project.configureArtifactoryReleasePublicationIfNecessary(vararg publications: String) {
     println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
     if (SpaceDokkaDev in this.publicationChannels) {
         configure<PublishingExtension> {
@@ -64,7 +91,7 @@ fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
                 maven {
                     name = SpaceDokkaDev.name
                     //url = URI.create("https://maven.pkg.jetbrains.space/kotlin/p/dokka/dev")
-                    url = URI.create("https://software.r3.com/artifactory/conclave-maven-dev")
+                    url = URI.create("https://software.r3.com/artifactory/conclave-maven-stable")
                     credentials {
 //                        username = System.getenv("SPACE_PACKAGES_USER")
 //                        password = System.getenv("SPACE_PACKAGES_SECRET")

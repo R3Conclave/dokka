@@ -83,7 +83,6 @@ publishing {
         println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
-                //artifactId = "dokka-gradle-plugin"
                 configurePom("Dokka plugin")
             }
         }
@@ -100,11 +99,8 @@ tasks.withType<PublishToMavenRepository>().configureEach {
 afterEvaluate { // Workaround for an interesting design choice https://github.com/gradle/gradle/blob/c4f935f77377f1783f70ec05381c8182b3ade3ea/subprojects/plugin-development/src/main/java/org/gradle/plugin/devel/plugins/MavenPluginPublishPlugin.java#L49
     println("XXX: afterEvaluate in runners:gradle-plugin")
     configureBintrayPublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
-    configureSpacePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
+    configureArtifactorySnapshotPublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
+    configureArtifactoryReleasePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     configureSonatypePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     createDokkaPublishTaskIfNecessary()
 }
-
-//registerDokkaArtifactPublication("dokkaGradlePlugin") {
-//    artifactId = "dokka-gradle-plugin"
-//}

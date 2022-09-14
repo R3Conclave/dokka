@@ -22,11 +22,9 @@ class DokkaPublicationBuilder {
 
 
 fun Project.registerDokkaArtifactPublication(publicationName: String, configure: DokkaPublicationBuilder.() -> Unit) {
-    println("XXX: Registering for publication: $publicationName")
     configure<PublishingExtension> {
         publications {
             register<MavenPublication>(publicationName) {
-                println("XXX: Configuring and registering for publication: $publicationName")
                 val builder = DokkaPublicationBuilder().apply(configure)
                 artifactId = builder.artifactId
                 when (builder.component) {
@@ -59,14 +57,13 @@ fun Project.configureArtifactorySnapshotPublicationIfNecessary(vararg publicatio
 }
 
 fun Project.configureArtifactoryPublication(repositoryName: String, vararg publications: String) {
-    println("XXX: configureSpacePublicationIfNecessary, publications: $publications")
-    if (SpaceDokkaDev in this.publicationChannels) {
+    if (Artifactory in this.publicationChannels) {
         configure<PublishingExtension> {
             repositories {
                 /* already registered */
-                findByName(SpaceDokkaDev.name)?.let { return@repositories }
+                findByName(Artifactory.name)?.let { return@repositories }
                 maven {
-                    name = SpaceDokkaDev.name
+                    name = Artifactory.name
                     url = URI.create("https://software.r3.com/artifactory/$repositoryName")
                     credentials {
                         username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
@@ -79,7 +76,7 @@ fun Project.configureArtifactoryPublication(repositoryName: String, vararg publi
 
     whenEvaluated {
         tasks.withType<PublishToMavenRepository> {
-            if (this.repository.name == SpaceDokkaDev.name) {
+            if (this.repository.name == Artifactory.name) {
                 this.isEnabled = this.isEnabled && publication.name in publications
                 if (!this.isEnabled) {
                     this.group = "disabled"
@@ -90,34 +87,28 @@ fun Project.configureArtifactoryPublication(repositoryName: String, vararg publi
 }
 
 fun Project.createDokkaPublishTaskIfNecessary() {
-    println("XXX: createDokkaPublishTaskIfNecessary")
     tasks.maybeCreate("dokkaPublish").run {
-        if (publicationChannels.any { it.isSpaceRepository }) {
-            println("XXX: task: publish")
+        if (publicationChannels.any { it.isArtifactoryRepository }) {
             dependsOn(tasks.named("publish"))
         }
 
         if (publicationChannels.any { it.isMavenRepository }) {
-            println("XXX: task: publishToSonatype")
             dependsOn(tasks.named("publishToSonatype"))
         }
 
         if (publicationChannels.any { it.isBintrayRepository }) {
-            println("XXX: task: bintrayUpload")
             dependsOn(tasks.named("bintrayUpload"))
         }
     }
 }
 
 fun Project.configureBintrayPublicationIfNecessary(vararg publications: String) {
-    println("XXX: configureBintrayPublicationIfNecessary, publications: $publications")
     if (publicationChannels.any { it.isBintrayRepository }) {
         configureBintrayPublication(*publications)
     }
 }
 
 private fun Project.configureBintrayPublication(vararg publications: String) {
-    println("XXX: configureBintrayPublication, publications: $publications")
     extensions.configure<BintrayExtension>("bintray") {
         user = System.getenv("BINTRAY_USER")
         key = System.getenv("BINTRAY_KEY")
@@ -133,7 +124,7 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
 
             repo = when (bintrayPublicationChannels.single()) {
                 //SpaceDokkaDev, MavenCentral, MavenCentralSnapshot, Artifactory, ArtifactorySnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
-                SpaceDokkaDev, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
+                Artifactory, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
                 BintrayKotlinDev -> "kotlin-dev"
                 BintrayKotlinEap -> "kotlin-eap"
                 BintrayKotlinDokka -> "dokka"
@@ -153,14 +144,12 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
 }
 
 fun Project.configureSonatypePublicationIfNecessary(vararg publications: String) {
-    println("XXX: configureSonatypePublicationIfNecessary, publications: $publications")
     if (publicationChannels.any { it.isMavenRepository }) {
         signPublicationsIfKeyPresent(*publications)
     }
 }
 
 fun MavenPublication.configurePom(projectName: String) {
-    println("XXX: Configuring pom for $projectName")
     pom {
         name.set(projectName)
         description.set("Dokka is a documentation engine for Kotlin and Java, performing the same function as Javadoc for Java")

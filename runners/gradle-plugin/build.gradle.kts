@@ -40,7 +40,6 @@ val sourceJar by tasks.registering(Jar::class) {
 
 gradlePlugin {
     plugins {
-        println("XXX Creating dokka gradle plugin")
         create("dokkaGradlePlugin") {
             id = "com.r3.conclave.dokka"
             displayName = "Dokka plugin"
@@ -64,23 +63,19 @@ pluginBundle {
 }
 
 publishing {
-    println("XXX1: Publishing task in runners:gradle-plugin")
     publications {
-        println("XXX2: Registering 1st task in runners:gradle-plugin")
         register<MavenPublication>("dokkaGradlePluginForIntegrationTests") {
             artifactId = "dokka-gradle-plugin"
             from(components["java"])
             version = "for-integration-tests-SNAPSHOT"
         }
 
-        println("XXX3: Registering 2nd task in runners:gradle-plugin")
         register<MavenPublication>("pluginMaven") {
             configurePom("Dokka ${project.name}")
             artifactId = "dokka-gradle-plugin"
             artifact(tasks["javadocJar"])
         }
 
-        println("XXX4: After evaluate in runners:gradle-plugin")
         afterEvaluate {
             named<MavenPublication>("dokkaGradlePluginPluginMarkerMaven") {
                 configurePom("Dokka plugin")
@@ -90,14 +85,10 @@ publishing {
 }
 
 tasks.withType<PublishToMavenRepository>().configureEach {
-    onlyIf {
-        println("XXX: onlyIf, publishing.publications: ${publication.name}, ${publication.artifactId}")
-        publication != publishing.publications["dokkaGradlePluginForIntegrationTests"]
-    }
+    onlyIf { publication != publishing.publications["dokkaGradlePluginForIntegrationTests"] }
 }
 
 afterEvaluate { // Workaround for an interesting design choice https://github.com/gradle/gradle/blob/c4f935f77377f1783f70ec05381c8182b3ade3ea/subprojects/plugin-development/src/main/java/org/gradle/plugin/devel/plugins/MavenPluginPublishPlugin.java#L49
-    println("XXX: afterEvaluate in runners:gradle-plugin")
     configureBintrayPublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     configureArtifactorySnapshotPublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     configureArtifactoryReleasePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")

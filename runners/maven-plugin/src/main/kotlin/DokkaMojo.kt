@@ -228,7 +228,7 @@ abstract class AbstractDokkaMojo(private val defaultDokkaPlugins: List<Dependenc
         val logger = MavenDokkaLogger(log)
 
         val pluginsConfiguration =
-            (mavenProject?.getPlugin("org.jetbrains.dokka:dokka-maven-plugin")?.configuration as? Xpp3Dom)
+            (mavenProject?.getPlugin("com.r3.conclave.dokka:dokka-maven-plugin")?.configuration as? Xpp3Dom)
                 ?.getChild("pluginsConfiguration")?.children?.map {
                     PluginConfigurationImpl(
                         it.name,
@@ -243,7 +243,7 @@ abstract class AbstractDokkaMojo(private val defaultDokkaPlugins: List<Dependenc
             offlineMode = offlineMode,
             cacheRoot = cacheRoot?.let(::File),
             sourceSets = listOf(sourceSet),
-            pluginsClasspath = getArtifactByMaven("org.jetbrains.dokka", "dokka-base", dokkaVersion) +
+            pluginsClasspath = getArtifactByMaven("com.r3.conclave.dokka", "dokka-base", dokkaVersion) +
                     dokkaPlugins.map { getArtifactByMaven(it.groupId, it.artifactId, it.version ?: dokkaVersion) }
                         .flatten(),
             pluginsConfiguration = pluginsConfiguration.toMutableList(),

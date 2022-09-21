@@ -656,7 +656,7 @@ open class HtmlRenderer(
 
     override fun buildError(node: ContentNode) = context.logger.error("Unknown ContentNode type: $node")
 
-    override fun FlowContent.buildNewLine() = br()
+    override fun FlowContent.buildLineBreak() = br()
 
     override fun FlowContent.buildLink(address: String, content: FlowContent.() -> Unit) =
         a(href = address, block = content)
@@ -703,25 +703,43 @@ open class HtmlRenderer(
         }
     }
 
-    override fun FlowContent.buildText(textNode: ContentText) =
+    override fun FlowContent.buildText(textNode: ContentText) = buildText(textNode, textNode.style)
+
+    private fun FlowContent.buildText(textNode: ContentText, unappliedStyles: Set<Style>) {
         when {
             textNode.extra[HtmlContent] != null -> {
                 consumer.onTagContentUnsafe { raw(textNode.text) }
             }
-            textNode.hasStyle(TextStyle.Indented) -> {
+            unappliedStyles.contains(TextStyle.Indented) -> {
                 consumer.onTagContentEntity(Entities.nbsp)
-                text(textNode.text)
+                buildText(textNode, unappliedStyles - TextStyle.Indented)
             }
-            textNode.hasStyle(TextStyle.Cover) -> buildBreakableText(textNode.text)
+            unappliedStyles.isNotEmpty() -> {
+                val styleToApply = unappliedStyles.first()
+                applyStyle(styleToApply){
+                    buildText(textNode, unappliedStyles - styleToApply)
+                }
+            }
+            textNode.hasStyle(ContentStyle.RowTitle) || textNode.hasStyle(TextStyle.Cover) ->
+                buildBreakableText(textNode.text)
             else -> text(textNode.text)
         }
+    }
+
+    private inline fun FlowContent.applyStyle(styleToApply: Style, crossinline body: FlowContent.() -> Unit){
+        when(styleToApply){
+            TextStyle.Bold -> b { body() }
+            TextStyle.Italic -> i { body() }
+            TextStyle.Strikethrough -> strike { body() }
+            TextStyle.Strong -> strong { body() }
+            else -> body()
+        }
+    }
 
     override fun render(root: RootPageNode) {
         shouldRenderSourceSetBubbles = shouldRenderSourceSetBubbles(root)
         super.render(root)
     }
-
-    private fun PageNode.root(path: String) = locationProvider.pathToRoot(this) + path
 
     override fun buildPage(page: ContentPage, content: (FlowContent, ContentPage) -> Unit): String =
         buildHtml(page, page.embeddedResources) {
@@ -742,7 +760,7 @@ open class HtmlRenderer(
                 meta(name = "viewport", content = "width=device-width, initial-scale=1", charset = "UTF-8")
                 title(page.name)
                 templateCommand(PathToRootSubstitutionCommand("###", default = pathToRoot)) {
-                    link(href = page.root("###images/logo-icon.svg"), rel = "icon", type = "image/svg")
+                    link(href = "###images/logo-icon.svg", rel = "icon", type = "image/svg")
                 }
                 templateCommand(PathToRootSubstitutionCommand("###", default = pathToRoot)) {
                     script { unsafe { +"""var pathToRoot = "###";""" } }

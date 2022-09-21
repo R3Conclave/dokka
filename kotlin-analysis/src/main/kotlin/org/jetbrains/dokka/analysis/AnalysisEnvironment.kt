@@ -1,27 +1,23 @@
 package org.jetbrains.dokka.analysis
 
 import com.intellij.core.CoreApplicationEnvironment
-import com.intellij.core.CoreModuleManager
 import com.intellij.mock.MockApplication
 import com.intellij.mock.MockComponentManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.Extensions
-import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.OrderEnumerationHandler
-import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.roots.impl.ProjectRootManagerImpl
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.StandardFileSystems
+import com.intellij.psi.PsiNameHelper
+import com.intellij.psi.impl.PsiNameHelperImpl
 import com.intellij.psi.impl.source.javadoc.JavadocManagerImpl
 import com.intellij.psi.javadoc.CustomJavadocTagProvider
 import com.intellij.psi.javadoc.JavadocManager
 import com.intellij.psi.javadoc.JavadocTagInfo
 import com.intellij.psi.search.GlobalSearchScope
 import org.jetbrains.dokka.Platform
+import org.jetbrains.dokka.analysis.resolve.*
 import org.jetbrains.kotlin.analyzer.*
 import org.jetbrains.kotlin.analyzer.common.CommonAnalysisParameters
 import org.jetbrains.kotlin.analyzer.common.CommonPlatformAnalyzerServices
@@ -69,6 +65,7 @@ import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms.unspecifiedJvmPlatform
 import org.jetbrains.kotlin.platform.konan.NativePlatforms
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.resolve.CliSealedClassInheritorsProvider
 import org.jetbrains.kotlin.resolve.CompilerEnvironment
 import org.jetbrains.kotlin.resolve.PlatformDependentAnalyzerServices
 import org.jetbrains.kotlin.resolve.jvm.JvmPlatformParameters
@@ -109,25 +106,6 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
         val environment = KotlinCoreEnvironment.createForProduction(this, configuration, configFiles)
         val projectComponentManager = environment.project as MockComponentManager
 
-        val projectFileIndex = CoreProjectFileIndex(
-            environment.project,
-            environment.configuration.getList(CLIConfigurationKeys.CONTENT_ROOTS)
-        )
-
-        val moduleManager = object : CoreModuleManager(environment.project, this) {
-            override fun getModules(): Array<out Module> = arrayOf(projectFileIndex.module)
-        }
-
-        CoreApplicationEnvironment.registerComponentInstance(
-            projectComponentManager.picoContainer,
-            ModuleManager::class.java, moduleManager
-        )
-
-        CoreApplicationEnvironment.registerExtensionPoint(
-            Extensions.getRootArea(),
-            OrderEnumerationHandler.EP_NAME, OrderEnumerationHandler.Factory::class.java
-        )
-
         CoreApplicationEnvironment.registerExtensionPoint(
             environment.project.extensionArea,
             JavadocTagInfo.EP_NAME, JavadocTagInfo::class.java
@@ -146,18 +124,13 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
         }
 
         projectComponentManager.registerService(
-            ProjectFileIndex::class.java,
-            projectFileIndex
-        )
-
-        projectComponentManager.registerService(
-            ProjectRootManager::class.java,
-            CoreProjectRootManager(projectFileIndex)
-        )
-
-        projectComponentManager.registerService(
             JavadocManager::class.java,
             JavadocManagerImpl(environment.project)
+        )
+
+        projectComponentManager.registerService(
+            PsiNameHelper::class.java,
+            PsiNameHelperImpl(environment.project)
         )
 
         projectComponentManager.registerService(
@@ -236,7 +209,7 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
             when (it) {
                 library -> ModuleContent(it, emptyList(), GlobalSearchScope.notScope(sourcesScope))
                 module -> ModuleContent(it, emptyList(), GlobalSearchScope.allScope(environment.project))
-                is DokkaNativeKlibLibraryInfo -> {
+                is DokkaKlibLibraryInfo -> {
                     if (it.libraryRoot in nativeLibraries)
                         ModuleContent(it, emptyList(), GlobalSearchScope.notScope(sourcesScope))
                     else null
@@ -310,9 +283,9 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
 
     @OptIn(ExperimentalStdlibApi::class)
     private fun loadNativeLibraries(): Map<AbsolutePathString, LibraryModuleInfo> {
-        if (analysisPlatform != Platform.native) return emptyMap()
+        if (analysisPlatform != Platform.native && analysisPlatform != Platform.js) return emptyMap()
 
-        val dependencyResolver = DokkaNativeKlibLibraryDependencyResolver()
+        val dependencyResolver = DokkaKlibLibraryDependencyResolver()
         val analyzerServices = analysisPlatform.analyzerServices()
 
         return buildMap {
@@ -326,7 +299,10 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
                     // exists, is KLIB, has compatible format
                     put(
                         libraryFile.absolutePath,
-                        DokkaNativeKlibLibraryInfo(kotlinLibrary, analyzerServices, dependencyResolver)
+                        if (analysisPlatform == Platform.native)
+                            DokkaNativeKlibLibraryInfo(kotlinLibrary, analyzerServices, dependencyResolver)
+                        else
+                            DokkaJsKlibLibraryInfo(kotlinLibrary, analyzerServices, dependencyResolver)
                     )
                 }
             }
@@ -364,7 +340,8 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
                     projectContext.withModule(descriptor),
                     modulesContent(moduleInfo),
                     this,
-                    LanguageVersionSettingsImpl.DEFAULT
+                    LanguageVersionSettingsImpl.DEFAULT,
+                    CliSealedClassInheritorsProvider,
                 )
 
             override fun sdkDependency(module: ModuleInfo): ModuleInfo? = null
@@ -385,14 +362,13 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
             override fun createResolverForModule(
                 descriptor: ModuleDescriptor,
                 moduleInfo: ModuleInfo
-            ): ResolverForModule = JsResolverForModuleFactory(
-                CompilerEnvironment
-            ).createResolverForModule(
+            ): ResolverForModule = DokkaJsResolverForModuleFactory(CompilerEnvironment).createResolverForModule(
                 descriptor as ModuleDescriptorImpl,
                 projectContext.withModule(descriptor),
                 modulesContent(moduleInfo),
                 this,
-                LanguageVersionSettingsImpl.DEFAULT
+                LanguageVersionSettingsImpl.DEFAULT,
+                CliSealedClassInheritorsProvider,
             )
 
             override fun builtInsForModule(module: ModuleInfo): KotlinBuiltIns = DefaultBuiltIns.Instance
@@ -422,7 +398,8 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
                     projectContext.withModule(descriptor),
                     modulesContent(moduleInfo),
                     this,
-                    LanguageVersionSettingsImpl.DEFAULT
+                    LanguageVersionSettingsImpl.DEFAULT,
+                    CliSealedClassInheritorsProvider,
                 )
             }
 
@@ -491,7 +468,8 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
                 projectContext.withModule(descriptor),
                 modulesContent(moduleInfo),
                 this,
-                LanguageVersionSettingsImpl.DEFAULT
+                LanguageVersionSettingsImpl.DEFAULT,
+                CliSealedClassInheritorsProvider,
             )
 
             override fun sdkDependency(module: ModuleInfo): ModuleInfo? = null

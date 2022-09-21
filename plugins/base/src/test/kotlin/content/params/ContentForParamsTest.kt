@@ -256,12 +256,14 @@ class ContentForParamsTest : BaseAbstractTest() {
             |/src/main/java/sample/DocGenProcessor.java
             |package sample;
             |/**
-            | * Return the target fragment set by {@link #setTargetFragment}.
+            | * Return the target fragment set by {@link #setTargetFragment} or {@link
+            | * #setTargetFragment}.
             | *
             | * @deprecated Instead of using a target fragment to pass results, the fragment requesting a
             | *              result should use
             | * {@link java.util.HashMap#containsKey(java.lang.Object) FragmentManager#setFragmentResult(String, Bundle)} to deliver results to
-            | * {@link java.util.HashMap#containsKey(java.lang.Object) FragmentResultListener} instances registered by other fragments via
+            | * {@link java.util.HashMap#containsKey(java.lang.Object)
+            | * FragmentResultListener} instances registered by other fragments via
             | * {@link java.util.HashMap#containsKey(java.lang.Object) FragmentManager#setFragmentResultListener(String, LifecycleOwner,
             | * FragmentResultListener)}.
             | */
@@ -285,6 +287,8 @@ class ContentForParamsTest : BaseAbstractTest() {
                             group {
                                 comment {
                                     +"Return the target fragment set by "
+                                    link { +"setTargetFragment" }
+                                    +" or "
                                     link { +"setTargetFragment" }
                                     +"."
                                 }
@@ -446,7 +450,7 @@ class ContentForParamsTest : BaseAbstractTest() {
                             }
                             after {
                                 group { pWrapped("a normal comment") }
-                                header(4) { +"Throws" }
+                                header(2) { +"Throws" }
                                 platformHinted {
                                     table {
                                         group {
@@ -505,7 +509,7 @@ class ContentForParamsTest : BaseAbstractTest() {
                             }
                             after {
                                 group { pWrapped("a normal comment") }
-                                header(4) { +"Throws" }
+                                header(2) { +"Throws" }
                                 platformHinted {
                                     table {
                                         group {
@@ -585,7 +589,7 @@ class ContentForParamsTest : BaseAbstractTest() {
                             }
                             after {
                                 group { pWrapped("a normal comment") }
-                                header(4) { +"Throws" }
+                                header(2) { +"Throws" }
                                 platformHinted {
                                     table {
                                         group {
@@ -1256,14 +1260,14 @@ class ContentForParamsTest : BaseAbstractTest() {
                             }
                             after {
                                 group { pWrapped("comment to function") }
+                                group {
+                                    header(4){ +"Receiver" }
+                                    pWrapped("comment to receiver")
+                                }
                                 header(2) { +"Parameters" }
                                 group {
                                     platformHinted {
                                         table {
-                                            group {
-                                                +"<receiver>"
-                                                group { group { +"comment to receiver" } }
-                                            }
                                             group {
                                                 +"abc"
                                                 group { group { +"comment to param" } }

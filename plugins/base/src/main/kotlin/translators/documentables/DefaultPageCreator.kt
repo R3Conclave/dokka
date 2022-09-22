@@ -23,7 +23,7 @@ import org.jetbrains.dokka.base.transformers.documentables.ClashingDriIdentifier
 private typealias GroupedTags = Map<KClass<out TagWrapper>, List<Pair<DokkaSourceSet?, TagWrapper>>>
 
 private val specialTags: Set<KClass<out TagWrapper>> =
-    setOf(Property::class, Description::class, Constructor::class, Receiver::class, Param::class, See::class)
+    setOf(Property::class, Description::class, Constructor::class, Param::class, See::class)
 
 open class DefaultPageCreator(
     configuration: DokkaBaseConfiguration?,
@@ -51,7 +51,7 @@ open class DefaultPageCreator(
             e.nameAfterClash(), contentForEnumEntry(e), setOf(e.dri), e,
             e.classlikes.renameClashingDocumentable().map(::pageForClasslike) +
                     e.filteredFunctions.renameClashingDocumentable().map(::pageForFunction) +
-                    e.properties.renameClashingDocumentable().mapNotNull(::pageForProperty)
+                    e.filteredProperties.renameClashingDocumentable().mapNotNull(::pageForProperty)
         )
 
     open fun pageForClasslike(c: DClasslike): ClasslikePageNode {
@@ -141,7 +141,7 @@ open class DefaultPageCreator(
 
             link(it.name, it.dri)
             if (it.sourceSets.size == 1 || (documentations.isNotEmpty() && haveSameContent)) {
-                documentations.first()?.let { firstSentenceComment(kind = ContentKind.Comment, content = it.root) }
+                documentations.first()?.let { firstParagraphComment(kind = ContentKind.Comment, content = it.root) }
             }
         }
     }
@@ -376,25 +376,17 @@ open class DefaultPageCreator(
         val platforms = d.sourceSets
 
         fun DocumentableContentBuilder.contentForParams() {
-            if (tags.isNotEmptyForTag<Param>()) {
+            if (tags.isNotEmptyForTag<Param>() && d !is DProperty) {
                 header(2, "Parameters", kind = ContentKind.Parameters)
                 group(
                     extra = mainExtra + SimpleAttr.header("Parameters"),
                     styles = setOf(ContentStyle.WithExtraAttributes)
                 ) {
                     sourceSetDependentHint(sourceSets = platforms.toSet(), kind = ContentKind.SourceSetDependentHint) {
-                        val receiver = tags.withTypeUnnamed<Receiver>()
                         val params = tags.withTypeNamed<Param>()
                         table(kind = ContentKind.Parameters) {
                             platforms.forEach { platform ->
                                 val possibleFallbacks = d.getPossibleFallbackSourcesets(platform)
-                                (receiver[platform] ?: receiver.fallback(possibleFallbacks))?.let {
-                                    row(sourceSets = setOf(platform), kind = ContentKind.Parameters) {
-                                        text("<receiver>", styles = mainStyles + ContentStyle.RowTitle)
-                                        comment(it.root)
-                                    }
-                                }
-
                                 params.mapNotNull { (_, param) ->
                                     (param[platform] ?: param.fallback(possibleFallbacks))?.let {
                                         row(sourceSets = setOf(platform), kind = ContentKind.Parameters) {
@@ -461,7 +453,7 @@ open class DefaultPageCreator(
         fun DocumentableContentBuilder.contentForThrows() {
             val throws = tags.withTypeNamed<Throws>()
             if (throws.isNotEmpty()) {
-                header(4, "Throws")
+                header(2, "Throws")
                 sourceSetDependentHint(sourceSets = platforms.toSet(), kind = ContentKind.SourceSetDependentHint) {
                     platforms.forEach { sourceset ->
                         table(kind = ContentKind.Main, sourceSets = setOf(sourceset)) {
@@ -521,15 +513,33 @@ open class DefaultPageCreator(
 
     protected open fun DocumentableContentBuilder.contentForBrief(documentable: Documentable) {
         documentable.sourceSets.forEach { sourceSet ->
-            documentable.documentation[sourceSet]?.children?.firstOrNull()?.root?.let {
+            documentable.documentation[sourceSet]?.let {
+                /*
+                    Get description or a tag that holds documentation.
+                    This tag can be either property or constructor but constructor tags are handled already in analysis so we
+                    only need to keep an eye on property
+
+                    We purposefully ignore all other tags as they should not be visible in brief
+                 */
+                it.firstMemberOfTypeOrNull<Description>() ?: it.firstMemberOfTypeOrNull<Property>().takeIf { documentable is DProperty }
+            }?.let {
                 group(sourceSets = setOf(sourceSet), kind = ContentKind.BriefComment) {
                     // R3: Always show full comment instead of just first sentence.
-                    comment(it)
-                    //if (documentable.hasSeparatePage) firstSentenceComment(it)
-                    //else comment(it)
+                    comment(it.root)
+                    //if (documentable.hasSeparatePage) createBriefComment(documentable, sourceSet, it)
+                    //else comment(it.root)
                 }
             }
         }
+    }
+
+    private fun DocumentableContentBuilder.createBriefComment(documentable: Documentable, sourceSet: DokkaSourceSet, tag: TagWrapper){
+        (documentable as? WithSources)?.documentableLanguage(sourceSet)?.let {
+            when(it){
+                DocumentableLanguage.KOTLIN -> firstParagraphComment(tag.root)
+                DocumentableLanguage.JAVA -> firstSentenceComment(tag.root)
+            }
+        } ?: firstParagraphComment(tag.root)
     }
 
     protected open fun DocumentableContentBuilder.contentForSinceKotlin(documentable: Documentable) {
@@ -626,7 +636,14 @@ open class DefaultPageCreator(
                             styles = emptySet(),
                             extra = elementName?.let { name -> extra + SymbolAnchorHint(name, kind) } ?: extra
                         ) {
-                            link(elementName.orEmpty(), elements.first().dri, kind = kind)
+                            link(
+                                text = elementName.orEmpty(),
+                                address = elements.first().dri,
+                                kind = kind,
+                                styles = setOf(ContentStyle.RowTitle),
+                                sourceSets = elements.sourceSets.toSet(),
+                                extra = extra
+                            )
                             divergentGroup(
                                 ContentDivergentGroup.GroupID(name),
                                 elements.map { it.dri }.toSet(),
@@ -644,7 +661,7 @@ open class DefaultPageCreator(
                                                 +buildSignature(it)
                                             }
                                         }
-                                        after {
+                                        after(extra = PropertyContainer.empty()) {
                                             contentForBrief(it)
                                             contentForSinceKotlin(it)
                                         }

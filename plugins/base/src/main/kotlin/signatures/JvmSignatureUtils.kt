@@ -8,6 +8,7 @@ import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.DokkaConfiguration.DokkaSourceSet
 import org.jetbrains.dokka.base.signatures.KotlinSignatureUtils.drisOfAllNestedBounds
 import org.jetbrains.dokka.model.AnnotationTarget
+import org.jetbrains.dokka.model.doc.DocumentationNode
 
 interface JvmSignatureUtils {
 
@@ -22,6 +23,19 @@ interface JvmSignatureUtils {
 
     fun <T : AnnotationTarget> WithExtraProperties<T>.annotations(): SourceSetDependent<List<Annotations.Annotation>> =
         extra[Annotations]?.directAnnotations ?: emptyMap()
+
+    @Suppress("UNCHECKED_CAST")
+    operator fun <T : Iterable<*>> SourceSetDependent<T>.plus(other: SourceSetDependent<T>): SourceSetDependent<T> =
+        LinkedHashMap(this).apply {
+            for ((k, v) in other) {
+                put(k, get(k).let { if (it != null) (it + v) as T else v })
+            }
+        }
+
+    fun DProperty.annotations(): SourceSetDependent<List<Annotations.Annotation>> =
+        (extra[Annotations]?.directAnnotations ?: emptyMap()) +
+        (getter?.annotations() ?: emptyMap()).mapValues { it.value.map { it.copy( scope = Annotations.AnnotationScope.GETTER) } } +
+        (setter?.annotations() ?: emptyMap()).mapValues { it.value.map { it.copy( scope = Annotations.AnnotationScope.SETTER) } }
 
     private fun PageContentBuilder.DocumentableContentBuilder.annotations(
         d: AnnotationTarget,
@@ -65,24 +79,29 @@ interface JvmSignatureUtils {
     ) {
 
         when (renderAtStrategy) {
-            is All, is OnlyOnce -> text("@")
+            is All, is OnlyOnce -> {
+                text("@")
+                when(a.scope) {
+                    Annotations.AnnotationScope.GETTER -> text("get:")
+                    Annotations.AnnotationScope.SETTER -> text("set:")
+                }
+            }
             is Never -> Unit
         }
         link(a.dri.classNames!!, a.dri)
-        text("(")
-        a.params.entries.forEachIndexed { i, it ->
-            group(styles = setOf(TextStyle.BreakableAfter)) {
-                text(it.key + " = ")
-                when (renderAtStrategy) {
-                    is All -> All
-                    is Never, is OnlyOnce -> Never
-                }.let { strategy ->
-                    valueToSignature(it.value, strategy, listBrackets, classExtension)
-                }
-                if (i != a.params.entries.size - 1) text(", ")
+        val isNoWrappedBrackets = a.params.entries.isEmpty() && renderAtStrategy is OnlyOnce
+        listParams(
+            a.params.entries,
+            if (isNoWrappedBrackets) null else Pair('(', ')')
+        ) {
+            text(it.key + " = ")
+            when (renderAtStrategy) {
+                is All -> All
+                is Never, is OnlyOnce -> Never
+            }.let { strategy ->
+                valueToSignature(it.value, strategy, listBrackets, classExtension)
             }
         }
-        text(")")
     }
 
     private fun PageContentBuilder.DocumentableContentBuilder.valueToSignature(
@@ -93,18 +112,27 @@ interface JvmSignatureUtils {
     ): Unit = when (a) {
         is AnnotationValue -> toSignatureString(a.annotation, renderAtStrategy, listBrackets, classExtension)
         is ArrayValue -> {
-            text(listBrackets.first.toString())
-            a.value.forEachIndexed { i, it ->
-                group(styles = setOf(TextStyle.BreakableAfter)) {
-                    valueToSignature(it, renderAtStrategy, listBrackets, classExtension)
-                    if (i != a.value.size - 1) text(", ")
-                }
-            }
-            text(listBrackets.second.toString())
+            listParams(a.value, listBrackets) { valueToSignature(it, renderAtStrategy, listBrackets, classExtension) }
         }
         is EnumValue -> link(a.enumName, a.enumDri)
         is ClassValue -> link(a.className + classExtension, a.classDRI)
-        is StringValue -> group(styles = setOf(TextStyle.Breakable)) { text(a.value) }
+        is StringValue -> group(styles = setOf(TextStyle.Breakable)) { text( "\"${a.text()}\"") }
+        is LiteralValue -> group(styles = setOf(TextStyle.Breakable)) { text(a.text()) }
+    }
+
+    private fun<T> PageContentBuilder.DocumentableContentBuilder.listParams(
+        params: Collection<T>,
+        listBrackets: Pair<Char, Char>?,
+        outFn: PageContentBuilder.DocumentableContentBuilder.(T) -> Unit
+    ) {
+        listBrackets?.let{ text(it.first.toString()) }
+        params.forEachIndexed { i, it ->
+            group(styles = setOf(TextStyle.BreakableAfter)) {
+                this.outFn(it)
+                if (i != params.size - 1) text(", ")
+            }
+        }
+        listBrackets?.let{ text(it.second.toString()) }
     }
 
     fun PageContentBuilder.DocumentableContentBuilder.annotationsBlockWithIgnored(

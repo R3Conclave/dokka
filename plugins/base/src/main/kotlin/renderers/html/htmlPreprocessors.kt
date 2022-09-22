@@ -15,8 +15,8 @@ import org.jetbrains.dokka.plugability.configuration
 import org.jetbrains.dokka.transformers.pages.PageTransformer
 
 abstract class NavigationDataProvider {
-    open fun navigableChildren(input: RootPageNode): NavigationNode =
-        input.children.filterIsInstance<ContentPage>().single().let { visit(it) }
+    open fun navigableChildren(input: RootPageNode): NavigationNode = input.withDescendants()
+        .first { it is ModulePage || it is MultimoduleRootPage }.let { visit(it as ContentPage) }
 
     open fun visit(page: ContentPage): NavigationNode =
         NavigationNode(
@@ -35,8 +35,14 @@ abstract class NavigationDataProvider {
             else -> emptyList()
         }.sortedBy { it.name.toLowerCase() }
 
+    /**
+     * Parenthesis is applied in 2 cases:
+     *  - page only contains functions (therefore documentable from this page is [DFunction])
+     *  - page merges only functions (documentable is null because [SameMethodNamePageMergerStrategy][org.jetbrains.dokka.base.transformers.pages.merger.SameMethodNamePageMergerStrategy]
+     *      removes it from page)
+     */
     private val ContentPage.displayableName: String
-        get() = if (documentable is DFunction) {
+        get() = if (documentable is DFunction || (documentable == null && dri.all { it.callable != null })) {
             "$name()"
         } else {
             name
@@ -167,9 +173,9 @@ private fun List<String>.toRenderSpecificResourcePage(): List<RendererSpecificRe
 class SourcesetDependencyAppender(val context: DokkaContext) : PageTransformer {
     private val name = "scripts/sourceset_dependencies.js"
     override fun invoke(input: RootPageNode): RootPageNode {
-        val dependenciesMap = context.configuration.sourceSets.map {
+        val dependenciesMap = context.configuration.sourceSets.associate {
             it.sourceSetID to it.dependentSourceSets
-        }.toMap()
+        }
 
         fun createDependenciesJson(): String =
             dependenciesMap.map { (key, values) -> key.toString() to values.map { it.toString() } }.toMap()

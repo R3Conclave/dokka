@@ -3,7 +3,7 @@
 ## Prerequisites
 
 Dokka's Html format requires a web server to view documentation correctly.
-This can be achieved by using the one that is build in Intellij or providing your own.
+This can be achieved by using the one that is build in IntelliJ or providing your own.
 If this requisite is not fulfilled Dokka with fail to load navigation pane and search bars.
 
 !!! important
@@ -32,7 +32,7 @@ Resources will be overridden when in `pluginConfiguration` block there is a reso
 ## Modifying footer
 
 Dokka supports custom messages in the footer via `footerMessage` string property on base plugin configuration. 
-Keep in mind that this value will be pased exactly to the output html, so it has to be valid and escaped correctly.
+Keep in mind that this value will be passed exactly to the output html, so it has to be valid and escaped correctly.
 
 ## Separating inherited members
 

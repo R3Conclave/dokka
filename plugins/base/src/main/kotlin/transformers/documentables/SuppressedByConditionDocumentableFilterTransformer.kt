@@ -41,7 +41,7 @@ abstract class SuppressedByConditionDocumentableFilterTransformer(val context: D
         if (shouldBeSuppressed(classlike)) return DocumentableWithChanges.filteredDocumentable()
 
         // R3: The compiler should automatically add JvmStatic functions in the parent class
-        // from the companion but it is failing to resolve the package that contains JvmStatic.
+        // from the companion, but it is failing to resolve the package that contains JvmStatic.
         // This is a workaround that manually moves the static functions into the containing class.
         val companion = (classlike as? WithCompanion)?.companion?.let { processClassLike(it) }
         val functions = if (classlike.name == "Companion") {

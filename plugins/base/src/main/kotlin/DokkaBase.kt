@@ -86,6 +86,10 @@ class DokkaBase : DokkaPlugin() {
         preMergeDocumentableTransformer providing ::InheritedEntriesDocumentableFilterTransformer
     }
 
+    val kotlinArrayDocumentableReplacer by extending {
+        preMergeDocumentableTransformer providing ::KotlinArrayDocumentableReplacerTransformer
+    }
+
     val emptyPackagesFilter by extending {
         preMergeDocumentableTransformer providing ::EmptyPackagesFilterTransformer order {
             after(
@@ -188,7 +192,7 @@ class DokkaBase : DokkaPlugin() {
     }
 
     val rootCreator by extending {
-        htmlPreprocessors with RootCreator
+        htmlPreprocessors with RootCreator applyIf { !delayTemplateSubstitution }
     }
 
     val defaultSamplesTransformer by extending {

@@ -11,6 +11,7 @@ import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.plugability.DokkaContext
 import org.jetbrains.dokka.plugability.plugin
 import org.jetbrains.dokka.plugability.query
+import org.jetbrains.dokka.utilities.htmlEscape
 
 open class CommonmarkRenderer(
     context: DokkaContext
@@ -26,11 +27,7 @@ open class CommonmarkRenderer(
         childrenCallback: StringBuilder.() -> Unit
     ) {
         return when {
-            node.hasStyle(TextStyle.Block) -> {
-                childrenCallback()
-                buildParagraph()
-            }
-            node.hasStyle(TextStyle.Paragraph) -> {
+            node.hasStyle(TextStyle.Block) || node.hasStyle(TextStyle.Paragraph) -> {
                 buildParagraph()
                 childrenCallback()
                 buildParagraph()
@@ -43,7 +40,7 @@ open class CommonmarkRenderer(
         buildParagraph()
         append("#".repeat(level) + " ")
         content()
-        appendNewLine()
+        buildParagraph()
     }
 
     override fun StringBuilder.buildLink(address: String, content: StringBuilder.() -> Unit) {
@@ -57,7 +54,9 @@ open class CommonmarkRenderer(
         pageContext: ContentPage,
         sourceSetRestriction: Set<DisplaySourceSet>?
     ) {
+        buildParagraph()
         buildListLevel(node, pageContext)
+        buildParagraph()
     }
 
     private fun StringBuilder.buildListItem(items: List<ContentNode>, pageContext: ContentPage) {
@@ -100,18 +99,18 @@ open class CommonmarkRenderer(
         } else buildText(node.children, pageContext, sourceSetRestriction)
     }
 
-    override fun StringBuilder.buildNewLine() {
+    override fun StringBuilder.buildLineBreak() {
         append("\\")
-        appendNewLine()
+        buildNewLine()
     }
 
-    private fun StringBuilder.appendNewLine() {
+    private fun StringBuilder.buildNewLine() {
         append("\n")
     }
 
     private fun StringBuilder.buildParagraph() {
-        appendNewLine()
-        appendNewLine()
+        buildNewLine()
+        buildNewLine()
     }
 
     override fun StringBuilder.buildPlatformDependent(
@@ -135,10 +134,11 @@ open class CommonmarkRenderer(
             }.groupBy(Pair<DisplaySourceSet, String>::second, Pair<DisplaySourceSet, String>::first)
 
             distinct.filter { it.key.isNotBlank() }.forEach { (text, platforms) ->
-                append(" ")
+                buildParagraph()
                 buildSourceSetTags(platforms.toSet())
-                append(" $text")
-                appendNewLine()
+                buildLineBreak()
+                append(text.trim())
+                buildParagraph()
             }
         }
     }
@@ -155,71 +155,67 @@ open class CommonmarkRenderer(
         pageContext: ContentPage,
         sourceSetRestriction: Set<DisplaySourceSet>?
     ) {
-        appendNewLine()
+        buildNewLine()
         if (node.dci.kind == ContentKind.Sample || node.dci.kind == ContentKind.Parameters) {
             node.sourceSets.forEach { sourcesetData ->
                 append(sourcesetData.name)
-                appendNewLine()
+                buildNewLine()
                 buildTable(
                     node.copy(
                         children = node.children.filter { it.sourceSets.contains(sourcesetData) },
                         dci = node.dci.copy(kind = ContentKind.Main)
                     ), pageContext, sourceSetRestriction
                 )
-                appendNewLine()
+                buildNewLine()
             }
         } else {
             val size = node.header.firstOrNull()?.children?.size ?: node.children.firstOrNull()?.children?.size ?: 0
+            if (size <= 0) return
 
             if (node.header.isNotEmpty()) {
                 node.header.forEach {
-                    append("| ")
                     it.children.forEach {
-                        append(" ")
+                        append("| ")
                         it.build(this, pageContext, it.sourceSets)
-                        append(" | ")
+                        append(" ")
                     }
-                    append("\n")
                 }
             } else {
                 append("| ".repeat(size))
-                if (size > 0) {
-                    append("|")
-                    appendNewLine()
-                }
             }
+            append("|")
+            buildNewLine()
 
             append("|---".repeat(size))
-            if (size > 0) {
-                append("|")
-                appendNewLine()
-            }
+            append("|")
+            buildNewLine()
 
-            node.children.forEach {
-                val builder = StringBuilder()
-                it.children.forEach {
-                    builder.append("| ")
-                    builder.append("<a name=\"${it.dci.dri.first()}\"></a>")
-                    builder.append(
-                        buildString { it.build(this, pageContext) }.replace(
-                            Regex("#+ "),
-                            ""
-                        )
-                    )  // Workaround for headers inside tables
+            node.children.forEach { row ->
+                row.children.forEach { cell ->
+                    append("| ")
+                    append(buildString { cell.build(this, pageContext) }
+                        .trim()
+                        .replace("#+ ".toRegex(), "") // Workaround for headers inside tables
+                        .replace("\\\n", "\n\n")
+                        .replace("\n[\n]+".toRegex(), "<br>")
+                        .replace("\n", " ")
+                    )
+                    append(" ")
                 }
-                append(builder.toString().withEntersAsHtml())
-                append("|".repeat(size + 1 - it.children.size))
-                append("\n")
+                append("|")
+                buildNewLine()
             }
         }
     }
 
     override fun StringBuilder.buildText(textNode: ContentText) {
-        if (textNode.text.isNotBlank()) {
+        if (textNode.extra[HtmlContent] != null) {
+            append(textNode.text)
+        } else if (textNode.text.isNotBlank()) {
             val decorators = decorators(textNode.style)
             append(textNode.text.takeWhile { it == ' ' })
             append(decorators)
-            append(textNode.text.trim())
+            append(textNode.text.trim().htmlEscape())
             append(decorators.reversed())
             append(textNode.text.takeLastWhile { it == ' ' })
         }
@@ -259,40 +255,35 @@ open class CommonmarkRenderer(
         distinct.values.forEach { entry ->
             val (instance, sourceSets) = entry.getInstanceAndSourceSets()
 
+            buildParagraph()
             buildSourceSetTags(sourceSets)
+            buildLineBreak()
 
             instance.before?.let {
-                buildNewLine()
-                append("Brief description")
-                buildNewLine()
                 buildContentNode(
                     it,
                     pageContext,
                     sourceSets.first()
                 ) // It's workaround to render content only once
+                buildParagraph()
             }
 
-            buildNewLine()
-            append("Content")
             entry.groupBy { buildString { buildContentNode(it.first.divergent, pageContext, setOf(it.second)) } }
                 .values.forEach { innerEntry ->
                     val (innerInstance, innerSourceSets) = innerEntry.getInstanceAndSourceSets()
-                    buildNewLine()
                     if (sourceSets.size > 1) {
                         buildSourceSetTags(innerSourceSets)
-                        buildNewLine()
+                        buildLineBreak()
                     }
                     innerInstance.divergent.build(
                         this@buildDivergent,
                         pageContext,
                         setOf(innerSourceSets.first())
                     ) // It's workaround to render content only once
+                    buildParagraph()
                 }
 
             instance.after?.let {
-                buildNewLine()
-                append("More info")
-                buildNewLine()
                 buildContentNode(
                     it,
                     pageContext,
@@ -357,11 +348,6 @@ open class CommonmarkRenderer(
             )
         }
     }
-
-    private fun String.withEntersAsHtml(): String = this
-        .replace("\\\n", "\n\n")
-        .replace("\n[\n]+".toRegex(), "<br>")
-        .replace("\n", " ")
 
     private fun List<Pair<ContentDivergentInstance, DisplaySourceSet>>.getInstanceAndSourceSets() =
         this.let { Pair(it.first().first, it.map { it.second }.toSet()) }

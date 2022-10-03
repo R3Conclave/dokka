@@ -25,8 +25,9 @@ private fun dokkaVersionFromBase(baseVersion: String): String {
 val Project.dokkaVersion: String
     get() = configureDokkaVersion()
 
+// R3: We use version number in the form 1.5.31-1.4-SNAPSHOT
 val Project.dokkaVersionType: DokkaVersionType?
-    get() = DokkaVersionType.values().find { it.suffix.matches(dokkaVersion.substringAfter("-", "")) }
+    get() = DokkaVersionType.values().find { it.suffix.matches(dokkaVersion.substringAfterLast("-", "")) }
 
 enum class ConclaveDokkaVersionType {
     GA_RELEASE,

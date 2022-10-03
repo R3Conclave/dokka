@@ -41,15 +41,18 @@ class FileWriter(val context: DokkaContext): OutputWriter {
 
 
     private suspend fun copyFromDirectory(pathFrom: String, pathTo: String) {
+        println("XXX: copyFromDirectory: pathFrom: $pathFrom, pathTo: $pathTo")
         val dest = Paths.get(root.path, pathTo).toFile()
         val uri = javaClass.getResource(pathFrom)?.toURI()
         val file = uri?.let { File(it) } ?: File(pathFrom)
+        println("XXX: dest: $dest, uri: $uri, file: $file")
         withContext(Dispatchers.IO) {
             file.copyRecursively(dest, true)
         }
     }
 
     private suspend fun copyFromJar(pathFrom: String, pathTo: String) {
+        println("XXX: copyFromJar")
         val rebase = fun(path: String) =
             "$pathTo/${path.removePrefix(pathFrom)}"
         val dest = Paths.get(root.path, pathTo).toFile()
@@ -61,6 +64,7 @@ class FileWriter(val context: DokkaContext): OutputWriter {
         val uri = javaClass.getResource(pathFrom).toURI()
         val fs = getFileSystemForURI(uri)
         val path = fs.getPath(pathFrom)
+        println("XXX: rebase: $rebase, dest: $dest, uri: $uri, fs: $fs, path: $path")
         for (file in Files.walk(path).iterator()) {
             if (Files.isDirectory(file)) {
                 val dirPath = file.toAbsolutePath().toString()

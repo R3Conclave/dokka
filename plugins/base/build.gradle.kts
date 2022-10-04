@@ -35,9 +35,9 @@ val copyCssFiles by tasks.registering(Copy::class){
         println(this.includes)
     }
 
-    for (i in projectDistDir.listFiles()){
-        println("XXX2: File name " + i.name)
-    }
+//    for (i in projectDistDir.listFiles()){
+//        println("XXX2: File name " + i.name)
+//    }
     
     println("XXX: Project dist dir: $projectDistDir")
     dependsOn(generateFrontendFiles)

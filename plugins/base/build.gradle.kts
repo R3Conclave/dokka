@@ -35,6 +35,7 @@ val copyCssFiles by tasks.registering(Copy::class){
     }
     println("XXX: Project dist dir: $projectDistDir")
     dependsOn(generateFrontendFiles)
+    println("XXX: single file: " + sourceSets.main.get().resources.sourceDirectories.singleFile)
     destinationDir = File(sourceSets.main.get().resources.sourceDirectories.singleFile, "dokka/styles")
     println("XXX: Destination dir for dokka/styles: $destinationDir")
 }

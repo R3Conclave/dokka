@@ -32,18 +32,10 @@ val copyJsFiles by tasks.registering(Copy::class){
 val copyCssFiles by tasks.registering(Copy::class){
     from(projectDistDir){
         include("*.css")
-        println(this.includes)
     }
 
-//    for (i in projectDistDir.listFiles()){
-//        println("XXX2: File name " + i.name)
-//    }
-    
-    println("XXX: Project dist dir: $projectDistDir")
     dependsOn(generateFrontendFiles)
-    println("XXX: single file: " + sourceSets.main.get().resources.sourceDirectories.singleFile)
-    destinationDir = File(sourceSets.main.get().resources.sourceDirectories.singleFile, "dokka/styles")
-    println("XXX: Destination dir for dokka/styles: $destinationDir")
+        destinationDir = File(sourceSets.main.get().resources.sourceDirectories.singleFile, "dokka/styles")
 }
 
 val copyFrontend by tasks.registering {

@@ -61,14 +61,12 @@ and can generate documentation in multiple formats including standard Javadoc, H
 **Full documentation is available at [https://kotlin.github.io/dokka/1.5.0/](https://kotlin.github.io/dokka/1.5.0/)**
 
 ### Using the Gradle plugin
-
 _Note: If you are upgrading from 0.10.x to a current release of Dokka, please have a look at our
 [migration guide](runners/gradle-plugin/MIGRATION.md)_
 
 The preferred way is to use `plugins` block.
 
 build.gradle.kts:
-
 ```kotlin
 plugins {
     id("org.jetbrains.dokka") version "1.5.0"
@@ -82,7 +80,6 @@ repositories {
 The plugin adds `dokkaHtml`, `dokkaJavadoc`, `dokkaGfm` and `dokkaJekyll` tasks to the project.
 
 #### Applying plugins
-
 Dokka plugin creates Gradle configuration for each output format in the form of `dokka${format}Plugin`:
 
 ```kotlin
@@ -130,9 +127,9 @@ buildscript {
 repositories {
     mavenCentral()
 }
-apply(plugin = "com.android.library")
-apply(plugin = "kotlin-android")
-apply(plugin = "org.jetbrains.dokka")
+apply(plugin= "com.android.library")
+apply(plugin= "kotlin-android")
+apply(plugin= "org.jetbrains.dokka")
 ```
 
 ```kotlin
@@ -146,7 +143,6 @@ dokkaHtml.configure {
 ```
 
 #### Multi-module projects
-
 For documenting Gradle multi-module projects, you can use `dokka${format}Multimodule` tasks.
 
 ```kotlin
@@ -166,16 +162,15 @@ Documentation is by default generated in `target/dokka`.
 
 The following goals are provided by the plugin:
 
-* `dokka:dokka` - generate HTML documentation in Dokka format (showing declarations in Kotlin syntax)
-* `dokka:javadoc` - generate HTML documentation in Javadoc format (showing declarations in Java syntax)
-* `dokka:javadocJar` - generate a .jar file with Javadoc format documentation
+ * `dokka:dokka` - generate HTML documentation in Dokka format (showing declarations in Kotlin syntax)
+ * `dokka:javadoc` - generate HTML documentation in Javadoc format (showing declarations in Java syntax)
+ * `dokka:javadocJar` - generate a .jar file with Javadoc format documentation
 
 #### Applying plugins
 
 You can add plugins inside the `dokkaPlugins` block:
 
 ```xml
-
 <plugin>
     <groupId>org.jetbrains.dokka</groupId>
     <artifactId>dokka-maven-plugin</artifactId>
@@ -207,13 +202,11 @@ Please see the [Dokka Maven example project](https://github.com/Kotlin/dokka/tre
 To run Dokka from the command line, download
 the [Dokka CLI runner](https://mvnrepository.com/artifact/org.jetbrains.dokka/dokka-cli).
 To generate documentation, run the following command:
-
 ```
 java -jar dokka-cli.jar <arguments>
 ```
 
 You can also use a JSON file with dokka configuration:
-
  ```
  java -jar <dokka_cli.jar> <path_to_config.json>
  ```
@@ -233,10 +226,9 @@ to the Dokka plugins classpath, eg. in Gradle:
 ```kotlin
 dependencies {
     implementation("...")
-    dokkaGfmPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:${dokka - version}")
+    dokkaGfmPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:${dokka-version}")
 }
 ```
 
 #### FAQ
-
 If you encounter any problems, please see the [FAQ](https://github.com/Kotlin/dokka/wiki/faq).

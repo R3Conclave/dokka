@@ -2,7 +2,6 @@ package org.jetbrains
 
 import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.jfrog.bintray.gradle.BintrayExtension
-import kotlinx.validation.ApiValidationExtension
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -10,7 +9,6 @@ import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.kotlin.dsl.*
 import org.gradle.plugins.signing.SigningExtension
 import org.jetbrains.DokkaPublicationChannel.*
-import io.github.gradlenexus.publishplugin.NexusPublishExtension
 import java.net.URI
 
 class DokkaPublicationBuilder {
@@ -43,24 +41,25 @@ fun Project.registerDokkaArtifactPublication(publicationName: String, configure:
     }
 
     configureBintrayPublicationIfNecessary(publicationName)
-    configureSpacePublicationIfNecessary(publicationName)
+    configureArtifactoryPublication(publicationName)
     configureSonatypePublicationIfNecessary(publicationName)
     createDokkaPublishTaskIfNecessary()
     registerBinaryCompatibilityCheck(publicationName)
 }
-
-fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
-    if (SpaceDokkaDev in this.publicationChannels) {
+fun Project.configureArtifactoryPublication(
+    vararg publications: String
+) {
+    if (Artifactory in this.publicationChannels) {
         configure<PublishingExtension> {
             repositories {
                 /* already registered */
-                findByName(SpaceDokkaDev.name)?.let { return@repositories }
+                findByName(Artifactory.name)?.let { return@repositories }
                 maven {
-                    name = SpaceDokkaDev.name
-                    url = URI.create("https://maven.pkg.jetbrains.space/kotlin/p/dokka/dev")
+                    name = Artifactory.name
+                    url = URI.create(getArtifactoryUrlForPublication())
                     credentials {
-                        username = System.getenv("SPACE_PACKAGES_USER")
-                        password = System.getenv("SPACE_PACKAGES_SECRET")
+                        username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
+                        password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
                     }
                 }
             }
@@ -69,7 +68,7 @@ fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
 
     whenEvaluated {
         tasks.withType<PublishToMavenRepository> {
-            if (this.repository.name == SpaceDokkaDev.name) {
+            if (this.repository.name == Artifactory.name) {
                 this.isEnabled = this.isEnabled && publication.name in publications
                 if (!this.isEnabled) {
                     this.group = "disabled"
@@ -81,7 +80,7 @@ fun Project.configureSpacePublicationIfNecessary(vararg publications: String) {
 
 fun Project.createDokkaPublishTaskIfNecessary() {
     tasks.maybeCreate("dokkaPublish").run {
-        if (publicationChannels.any { it.isSpaceRepository }) {
+        if (publicationChannels.any { it.isArtifactoryRepository }) {
             dependsOn(tasks.named("publish"))
         }
 
@@ -116,7 +115,9 @@ private fun Project.configureBintrayPublication(vararg publications: String) {
             }
 
             repo = when (bintrayPublicationChannels.single()) {
-                SpaceDokkaDev, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException("${bintrayPublicationChannels.single()} is not a bintray repository")
+                Artifactory, MavenCentral, MavenCentralSnapshot -> throw IllegalStateException(
+                    "${bintrayPublicationChannels.single()} is not a bintray repository"
+                )
                 BintrayKotlinDev -> "kotlin-dev"
                 BintrayKotlinEap -> "kotlin-eap"
                 BintrayKotlinDokka -> "dokka"
@@ -139,6 +140,19 @@ fun Project.configureSonatypePublicationIfNecessary(vararg publications: String)
     if (publicationChannels.any { it.isMavenRepository }) {
         signPublicationsIfKeyPresent(*publications)
     }
+}
+
+fun Project.getArtifactoryUrlForPublication(): String {
+    var mavenRepo = ""
+    val versionType = getConclaveDokkaVersionType()
+    if (versionType == ConclaveDokkaVersionType.SNAPSHOT) {
+        mavenRepo = "conclave-maven-dev"
+    } else if (versionType == ConclaveDokkaVersionType.RELEASE_CANDIDATE) {
+        mavenRepo = "conclave-maven-unstable"
+    } else {
+        mavenRepo = "conclave-maven-stable"
+    }
+    return "https://software.r3.com/artifactory/" + mavenRepo
 }
 
 fun MavenPublication.configurePom(projectName: String) {

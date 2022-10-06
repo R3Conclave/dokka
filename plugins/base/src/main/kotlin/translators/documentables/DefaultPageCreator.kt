@@ -526,8 +526,8 @@ open class DefaultPageCreator(
                 group(sourceSets = setOf(sourceSet), kind = ContentKind.BriefComment) {
                     // R3: Always show full comment instead of just first sentence.
                     comment(it.root)
-                    //if (documentable.hasSeparatePage) createBriefComment(documentable, sourceSet, it)
-                    //else comment(it.root)
+                    // if (documentable.hasSeparatePage) createBriefComment(documentable, sourceSet, it)
+                    // else comment(it.root)
                 }
             }
         }

@@ -41,7 +41,7 @@ val sourceJar by tasks.registering(Jar::class) {
 gradlePlugin {
     plugins {
         create("dokkaGradlePlugin") {
-            id = "org.jetbrains.dokka"
+            id = "com.r3.conclave.dokka"
             displayName = "Dokka plugin"
             description = "Dokka, the Kotlin documentation tool"
             implementationClass = "org.jetbrains.dokka.gradle.DokkaPlugin"
@@ -57,7 +57,7 @@ pluginBundle {
     tags = listOf("dokka", "kotlin", "kdoc", "android", "documentation")
 
     mavenCoordinates {
-        groupId = "org.jetbrains.dokka"
+        groupId = "com.r3.conclave.dokka"
         artifactId = "dokka-gradle-plugin"
     }
 }
@@ -90,7 +90,7 @@ tasks.withType<PublishToMavenRepository>().configureEach {
 
 afterEvaluate { // Workaround for an interesting design choice https://github.com/gradle/gradle/blob/c4f935f77377f1783f70ec05381c8182b3ade3ea/subprojects/plugin-development/src/main/java/org/gradle/plugin/devel/plugins/MavenPluginPublishPlugin.java#L49
     configureBintrayPublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
-    configureSpacePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
+    configureArtifactoryPublication("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     configureSonatypePublicationIfNecessary("pluginMaven", "dokkaGradlePluginPluginMarkerMaven")
     createDokkaPublishTaskIfNecessary()
 }

@@ -5,14 +5,14 @@ package org.jetbrains
 import org.gradle.api.Project
 
 enum class DokkaPublicationChannel {
-    SpaceDokkaDev,
+    Artifactory,
     BintrayKotlinDev,
     BintrayKotlinEap,
     BintrayKotlinDokka,
     MavenCentral,
     MavenCentralSnapshot;
 
-    val isSpaceRepository get() = this == SpaceDokkaDev
+    val isArtifactoryRepository get() = this == Artifactory
 
     val isBintrayRepository
         get() = when (this) {
@@ -27,10 +27,10 @@ enum class DokkaPublicationChannel {
         }
 
     val acceptedDokkaVersionTypes: List<DokkaVersionType>
-        get() = when(this) {
+        get() = when (this) {
             MavenCentral -> listOf(DokkaVersionType.Release)
             MavenCentralSnapshot -> listOf(DokkaVersionType.Snapshot)
-            SpaceDokkaDev -> listOf(DokkaVersionType.Release, DokkaVersionType.Dev, DokkaVersionType.MC, DokkaVersionType.Snapshot)
+            Artifactory -> listOf(DokkaVersionType.Release, DokkaVersionType.Snapshot, DokkaVersionType.Dev)
             BintrayKotlinDev -> listOf(DokkaVersionType.Dev, DokkaVersionType.MC, DokkaVersionType.Snapshot)
             BintrayKotlinEap -> listOf(DokkaVersionType.MC)
             BintrayKotlinDokka -> listOf(DokkaVersionType.Release)
@@ -38,7 +38,7 @@ enum class DokkaPublicationChannel {
 
     companion object {
         fun fromPropertyString(value: String): DokkaPublicationChannel = when (value) {
-            "space-dokka-dev" -> SpaceDokkaDev
+            "artifactory" -> Artifactory
             "bintray-kotlin-dev" -> BintrayKotlinDev
             "bintray-kotlin-eap" -> BintrayKotlinEap
             "bintray-kotlin-dokka" -> BintrayKotlinDokka

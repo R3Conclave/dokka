@@ -228,7 +228,7 @@ abstract class AbstractDokkaMojo(private val defaultDokkaPlugins: List<Dependenc
         val logger = MavenDokkaLogger(log)
 
         val pluginsConfiguration =
-            (mavenProject?.getPlugin("org.jetbrains.dokka:dokka-maven-plugin")?.configuration as? Xpp3Dom)
+            (mavenProject?.getPlugin("com.r3.conclave.dokka:dokka-maven-plugin")?.configuration as? Xpp3Dom)
                 ?.getChild("pluginsConfiguration")?.children?.map {
                     PluginConfigurationImpl(
                         it.name,
@@ -243,7 +243,7 @@ abstract class AbstractDokkaMojo(private val defaultDokkaPlugins: List<Dependenc
             offlineMode = offlineMode,
             cacheRoot = cacheRoot?.let(::File),
             sourceSets = listOf(sourceSet),
-            pluginsClasspath = getArtifactByMaven("org.jetbrains.dokka", "dokka-base", dokkaVersion) +
+            pluginsClasspath = getArtifactByMaven("com.r3.conclave.dokka", "dokka-base", dokkaVersion) +
                     dokkaPlugins.map { getArtifactByMaven(it.groupId, it.artifactId, it.version ?: dokkaVersion) }
                         .flatten(),
             pluginsConfiguration = pluginsConfiguration.toMutableList(),
@@ -288,7 +288,7 @@ abstract class AbstractDokkaMojo(private val defaultDokkaPlugins: List<Dependenc
     }
 
     private val dokkaVersion: String by lazy {
-        mavenProject?.pluginArtifacts?.filter { it.groupId == "org.jetbrains.dokka" && it.artifactId == "dokka-maven-plugin" }
+        mavenProject?.pluginArtifacts?.filter { it.groupId == "com.r3.conclave.dokka" && it.artifactId == "dokka-maven-plugin" }
             ?.firstOrNull()?.version ?: throw IllegalStateException("Not found dokka plugin")
     }
 }
@@ -397,6 +397,6 @@ class DokkaJavadocJarMojo : AbstractDokkaMojo(listOf(javadocDependency)) {
 }
 
 private val javadocDependency = Dependency().apply {
-    groupId = "org.jetbrains.dokka"
+    groupId = "com.r3.conclave.dokka"
     artifactId = "javadoc-plugin"
 }

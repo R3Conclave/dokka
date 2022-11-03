@@ -30,8 +30,9 @@ class JavaSignatureProvider internal constructor(ctcc: CommentsToContentConverte
     private val ignoredVisibilities = setOf(JavaVisibility.Default)
 
     // R3: Hide 'Final' modifier from generated docs.
+    // R3: Remove hiding 'Final' modifier.
     private val ignoredModifiers =
-        setOf(KotlinModifier.Open, JavaModifier.Empty, KotlinModifier.Empty, KotlinModifier.Sealed, KotlinModifier.Final, JavaModifier.Final)
+        setOf(KotlinModifier.Open, JavaModifier.Empty, KotlinModifier.Empty, KotlinModifier.Sealed)
 
     override fun signature(documentable: Documentable): List<ContentNode> = when (documentable) {
         is DFunction -> signature(documentable)
